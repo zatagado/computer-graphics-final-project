@@ -1,7 +1,7 @@
 from transform import Transform
 
 class DirectionalLight:
-    def __init__(self, color):
+    def __init__(self, color): #? should intensity be added? can just manipulate the color with directional
         self.color = color
         self.transform = Transform()
 

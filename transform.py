@@ -13,10 +13,15 @@ class Transform:
         return np.array([self.model_matrix[0][3], self.model_matrix[1][3], \
             self.model_matrix[2][3]], dtype=float)
 
-    def set_position(self, x, y, z):
-        self.model_matrix[0][3] = x
-        self.model_matrix[1][3] = y
-        self.model_matrix[2][3] = z
+    def set_position(self, x, y=None, z=None):
+        if isinstance(x, float) or isinstance(x, int):
+            self.model_matrix[0][3] = x
+            self.model_matrix[1][3] = y
+            self.model_matrix[2][3] = z
+        else:
+            self.model_matrix[0][3] = x[0]
+            self.model_matrix[1][3] = x[1]
+            self.model_matrix[2][3] = x[2]
 
     def __rotate_x(self, degrees):
         radians = math.radians(degrees)
@@ -72,3 +77,13 @@ class Transform:
         radians = math.radians(rotation)
         self.model_matrix = Matrix.overwrite(self.model_matrix, np.add(np.add(np.identity(3, dtype=float)\
             , k * math.sin(radians)), np.matmul(k, k) * (1 - math.cos(radians))), 0, 0)
+        
+    # source: https://stackoverflow.com/questions/18558910/direction-vector-to-rotation-matrix
+    def set_rotation_towards(self, direction, up=[0, 0, 1]):
+        rotation = np.zeros(3, dtype=float)
+        xAxis = Vector3.cross(up, direction)
+        zAxis = Vector3.cross(xAxis, direction)
+        
+        self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(xAxis), 0, 0)
+        self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(direction), 1, 0)
+        self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(zAxis), 2, 0)
