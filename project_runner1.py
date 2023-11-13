@@ -43,6 +43,7 @@ if __name__ == '__main__':
     # lightSim.transform.set_axis_rotation(np.array([1, 1, 1], dtype=float), 0)
     # lightSim.transform.set_position(sim_pos)
     lightSim.transform.set_position(5, 5, 5)
+    lightSim.transform.set_rotation_towards(Vector3.negate(Vector3.normalize([5, 5, 5])))
 
     # light = PointLight(50.0, np.array([1, 1, 1]))
     # light.transform.set_position(-4, 4, -3)

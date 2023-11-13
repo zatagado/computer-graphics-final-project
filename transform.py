@@ -80,7 +80,6 @@ class Transform:
         
     # source: https://stackoverflow.com/questions/18558910/direction-vector-to-rotation-matrix
     def set_rotation_towards(self, direction, up=[0, 0, 1]):
-        rotation = np.zeros(3, dtype=float)
         xAxis = Vector3.cross(up, direction)
         zAxis = Vector3.cross(xAxis, direction)
         
