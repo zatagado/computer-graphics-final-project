@@ -1,6 +1,7 @@
 from screen import Screen
 from mesh import Mesh
 from render_math import Vector2, Vector3, Vector4, Shader
+from light import PointLight, DirectionalLight
 import numpy as np
 import math
 
@@ -91,41 +92,67 @@ class Renderer:
             return (255 * depth_norm, 255 * depth_norm, 255 * depth_norm)
         
         def shade_phong_blinn(ambient_light, light, camera, mesh, world_tri, world_tri_vert_normals, alpha, beta, gamma):
+            o = mesh.diffuse_color
+            kd = mesh.kd
+            l_color = light.color
+            
             p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
             
             n = mesh.transform.apply_to_normal(Vector3.add(Vector3.mul(world_tri_vert_normals[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri_vert_normals[1], beta), \
                 Vector3.mul(world_tri_vert_normals[2], gamma))))
-            l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
 
-            o = mesh.diffuse_color
-            kd = mesh.kd
-            phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
-            phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+            # TODO check if the directional light calculation is correct
+            if isinstance(light, DirectionalLight):
+                l = light.transform.apply_to_normal(Vector3.forward())
 
-            l_color = light.color
-            l_intensity = light.intensity
-            l_distance = Vector3.dist(light.transform.get_position(), p)
-            id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
-            
-            d = Vector3.mul(id, phi_d)
+                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
+                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
 
-            # camera transform get position - p norm
-            v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
-            h = Vector3.normalize(Vector3.add(l, v))
+                d = Vector3.mul(l_color, phi_d)
 
-            i_s = mesh.specular_color
-            ks = mesh.ks
-            ke = mesh.ke
-            phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
 
-            s = Vector3.mul(i_s, phi_s) # TODO looks slightly off on depth 2
+                i_s = mesh.specular_color
+                ks = mesh.ks
+                ke = mesh.ke
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
 
-            a = Vector3.mul(ambient_light, mesh.ka)
+                s = Vector3.mul(i_s, phi_s) # TODO looks slightly off on depth 2
 
-            final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
-            return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
+                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+            elif isinstance(light, PointLight):
+                l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
+
+                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
+                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+
+                l_intensity = light.intensity
+                l_distance = Vector3.dist(light.transform.get_position(), p)
+                id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
+                
+                d = Vector3.mul(id, phi_d)
+
+                # camera transform get position - p norm
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
+
+                i_s = mesh.specular_color
+                ks = mesh.ks
+                ke = mesh.ke
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+
+                s = Vector3.mul(i_s, phi_s) # TODO looks slightly off on depth 2
+
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
+                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
 
         def shade_gouraud_vertex(vertex_colors, face, ambient_light, light, camera, mesh, world_tri, world_tri_vert_normals):
             for i in range(3):
@@ -172,18 +199,6 @@ class Renderer:
             y = math.floor((texture_height - 1) * (1 - uv[1]))
 
             return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
-
-        # def shade_texture_correct(texture_pixels, texture_width, texture_height, uv_tri, ndc_tri, \
-        #     alpha, beta, gamma):
-        #     # TODO something is wrong, seemed better with ndc_tri[1]
-        #     uv = Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[0]), (ndc_tri[0][2] + 1) / 2), alpha), \
-        #         Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[1]), (ndc_tri[1][2] + 1) / 2), beta), \
-        #         Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[2]), (ndc_tri[2][2] + 1) / 2), gamma)))
-
-        #     x = math.floor((texture_width - 1) * (uv[0] / uv[2]))
-        #     y = math.floor((texture_height - 1) * (1 - (uv[1] / uv[2])))
-
-        #     return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
 
         def shade_texture_correct(camera, texture_pixels, texture_width, texture_height, uv_tri, ndc_tri, \
             alpha, beta, gamma):

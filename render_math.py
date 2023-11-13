@@ -33,7 +33,17 @@ class Vector2:
         return np.append(a, 1)
 
 class Vector3:
-    # TODO vector3 forward, up, right
+    @staticmethod
+    def forward():
+        return np.array([0, 1, 0], dtype=float)
+    
+    @staticmethod
+    def up():
+        return np.array([0, 0, 1], dtype=float)
+    
+    @staticmethod
+    def right():
+        return np.array([1, 0, 0], dtype=float)
 
     @staticmethod
     def negate(a):

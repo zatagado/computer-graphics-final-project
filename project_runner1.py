@@ -4,7 +4,7 @@ from screen import Screen
 from camera import PerspectiveCamera,OrthoCamera
 from mesh import Mesh
 from renderer import Renderer
-from light import PointLight
+from light import PointLight, DirectionalLight
 
 
 
@@ -29,10 +29,13 @@ if __name__ == '__main__':
         np.array([1.0, 1.0, 1.0]),0.05,0.8,0.2,100)
     mesh_3.transform.set_position(-0.4,0,0.75)
 
-    light = PointLight(50.0, np.array([1, 1, 1]))
-    light.transform.set_position(-4, 4, -3)
+    light = DirectionalLight(np.array([1, 1, 1]))
+    light.transform.set_rotation(45, 0, -30)
 
-    renderer = Renderer(screen, camera, [mesh_1,mesh_2,mesh_3], light)
+    # light = PointLight(50.0, np.array([1, 1, 1]))
+    # light.transform.set_position(-4, 4, -3)
+
+    renderer = Renderer(screen, camera, [mesh_1, mesh_2, mesh_3], light)
     renderer.render("phong-blinn",[80,80,80], [0.2, 0.2, 0.2])
 
     screen.show()
