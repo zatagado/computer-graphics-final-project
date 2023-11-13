@@ -83,6 +83,18 @@ class Transform:
         xAxis = Vector3.cross(up, direction)
         zAxis = Vector3.cross(xAxis, direction)
         
-        self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(xAxis), 0, 0)
-        self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(direction), 1, 0)
-        self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(zAxis), 2, 0)
+        # self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(xAxis), 0, 0)
+        # self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(direction), 1, 0)
+        # self.model_matrix = Matrix.overwrite(self.model_matrix, Vector3.to_vertical(zAxis), 2, 0)
+
+        self.model_matrix[0][0] = xAxis[0]
+        self.model_matrix[1][0] = xAxis[1]
+        self.model_matrix[2][0] = xAxis[2]
+
+        self.model_matrix[0][1] = direction[0]
+        self.model_matrix[1][1] = direction[1]
+        self.model_matrix[2][1] = direction[2]
+
+        self.model_matrix[0][2] = zAxis[0]
+        self.model_matrix[1][2] = zAxis[1]
+        self.model_matrix[2][2] = zAxis[2]

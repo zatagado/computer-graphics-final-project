@@ -94,6 +94,8 @@ class Vector3:
     
     @staticmethod
     def div(a: np.ndarray, b: float):
+        if b == 0:
+            b = 0.0000001
         return np.array([a[0] / b, a[1] / b, a[2] / b])
     
     @staticmethod
@@ -128,6 +130,8 @@ class Vector4:
 
     @staticmethod
     def div(a: np.ndarray, b: float):
+        if b == 0:
+            b = 0.0000001
         return np.array([a[0] / b, a[1] / b, a[2] / b, a[3] / b])
 
     @staticmethod
