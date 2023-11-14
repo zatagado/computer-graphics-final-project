@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     light = DirectionalLight(np.array([1, 1, 1]))
     light.transform.set_rotation_towards(Vector3.normalize([-1, 0.5, -1]))
-    sim_pos = Vector3.mul(light.transform.apply_to_normal(Vector3.forward()), 10)
+    sim_pos = Vector3.mul(light.transform.apply_to_normal(Vector3.forward()), 10) # TODO ask why this is in this direction
 
     lightSim = OrthoCamera(6.0, -6.0, -6.0, 6.0, -1.0, -20) #* The negative far plane is important
     lightSim.transform.set_position(sim_pos)
@@ -48,6 +48,6 @@ if __name__ == '__main__':
 
     # renderer = Renderer(screen, camera, [mesh_1, mesh_2, mesh_3, mesh_4], light)
     renderer = Renderer(screen, lightSim, [mesh_1, mesh_2, mesh_3, mesh_4], light)
-    renderer.render("phong-blinn",[80,80,80], [0.2, 0.2, 0.2]) # TODO find out the issue witht the ambient light when color is changed
+    renderer.render("depth",[80,80,80], [0.2, 0.2, 0.2]) # TODO find out the issue with the ambient light when color is changed
 
     screen.show()

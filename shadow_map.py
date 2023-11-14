@@ -1,8 +1,13 @@
 import numpy as np
 import math
+from light import DirectionalLight
+from camera import OrthoCamera
+from render_math import Vector3
 
 class ShadowMap:
-    def __init__(self, light, meshes): # mesh?
+    def __init__(self, light: DirectionalLight, meshes, orthoCamera: OrthoCamera): 
+        self.orthoCamera = orthoCamera
+        self.orthoCamera.transform.set_rotation_towards(light.transform.apply_to_normal(Vector3.negate(Vector3.forward())))
         self.depth_buffer = np.full((0, 0), -math.inf, dtype=float) #? what should the width and height be 
         # TODO scale this to cover the entire screen
         # values from 0 - 1
