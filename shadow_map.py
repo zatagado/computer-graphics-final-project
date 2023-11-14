@@ -156,7 +156,7 @@ class ShadowMap:
 
         # ? where should the pixel lie, floor or ceil or somewhere in the middle?
         x = math.floor(screen_vert[0])
-        y = math.floor(screen_vert[1])
+        y = math.floor(screen_vert[1]) #? is there some issue with the pixel being flipped
         depth = ndc_vert[2]
         if depth > 1 or depth < -1: 
             return 1

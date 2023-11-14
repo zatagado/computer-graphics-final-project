@@ -79,10 +79,20 @@ class Transform:
             , k * math.sin(radians)), np.matmul(k, k) * (1 - math.cos(radians))), 0, 0)
         
     # modified from source: https://stackoverflow.com/questions/18558910/direction-vector-to-rotation-matrix
-    def set_rotation_towards(self, direction, up=[0, 0, 1]):
+    def set_rotation_towards(self, direction):
         direction = Vector3.normalize(Vector3.negate(direction)) # TODO not sure why this is needed
-        xAxis = Vector3.normalize(Vector3.cross(direction, up))
-        zAxis = Vector3.normalize(Vector3.cross(xAxis, direction))
+        up=[0, 0, 1]
+        xAxis = None
+        zAxis = None
+        if direction[2] == 1:
+            xAxis = [1, 0, 0]
+            zAxis = [0, -1, 0]
+        elif direction[2] == -1:
+            xAxis = [1, 0, 0]
+            zAxis = [0, 1, 0]
+        else:
+            xAxis = Vector3.normalize(Vector3.cross(direction, up))
+            zAxis = Vector3.normalize(Vector3.cross(xAxis, direction))
 
         self.model_matrix[0][0] = xAxis[0]
         self.model_matrix[1][0] = xAxis[1]

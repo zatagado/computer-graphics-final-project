@@ -294,6 +294,7 @@ class Renderer:
                         betaDivisor = (((y_a - y_c) * x_b) + ((x_c - x_a) * y_b) + (x_a * y_c) - (x_c * y_a))
                         if betaDivisor == 0:
                             betaDivisor = 0.0000001
+                            # TODO return -1 -1 -1
                         beta = (((y_a - y_c) * x) + ((x_c - x_a) * y) + (x_a * y_c) - (x_c * y_a)) / betaDivisor
 
                         alpha = 1 - beta - gamma
@@ -334,6 +335,9 @@ class Renderer:
                             image_buffer[x, y] = shade_texture_correct(self.camera, texture_pixels, texture_width, texture_height, uv_tri, \
                                 ndc_tri, alpha, beta, gamma)
                         elif shading == "shadow-map":
+                            screen = Vector3.add(Vector3.add(Vector3.mul(screen_tri[0], alpha), Vector3.mul(screen_tri[1], beta)), Vector3.mul(screen_tri[2], gamma))
+                            if screen[0] != x or screen[1] != y:
+                                print(f'x: {screen[0]} vs {x}\ny: {screen[1]} vs {y}')
                             image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
 
             if shading == "texture" or shading == "texture-correct":
