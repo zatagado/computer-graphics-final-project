@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     lightSim = OrthoCamera(6.0, -6.0, -6.0, 6.0, -1.0, -20) #* The negative far plane is important
     lightSim.transform.set_position(sim_pos)
-    lightSim.transform.set_rotation_towards(Vector3.normalize(Vector3.sub(mesh_1.transform.get_position(), lightSim.transform.get_position())))
+    lightSim.transform.set_rotation_towards(Vector3.sub(mesh_1.transform.get_position(), lightSim.transform.get_position()))
     
     # light = PointLight(50.0, np.array([1, 1, 1]))
     # light.transform.set_position(-4, 4, -3)
