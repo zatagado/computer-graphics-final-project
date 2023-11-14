@@ -46,9 +46,10 @@ class PerspectiveCamera:
 
     def project_inverse_point(self, p):
         # p_copy = np.array([p[0], p[1], p[2]], dtype=float)
-        p_copy = np.array(p, dtype=float)
+        # p_copy = np.array(p, dtype=float)
         # flip the y and z value
-        p_copy[1], p_copy[2] = p_copy[2], p_copy[1]
+        # p_copy[1], p_copy[2] = p_copy[2], p_copy[1]
+        p = np.array([p[0], p[2], p[1]], dtype=float)
         # multiply by inverse orthographic transform
         p_persp = np.matmul(self.inverse_ortho_transform, Vector3.to_vertical(Vector3.to_Vector4(p_copy)))
         
@@ -92,7 +93,8 @@ class OrthoCamera:
 
     def inverse_project_point(self, p):
         # flip the y and z value
-        p[1], p[2] = p[2], p[1]
+        # p[1], p[2] = p[2], p[1]
+        p = np.array([p[0], p[2], p[1]], dtype=float)
         # multiply by inverse orthographic transform
         p_view = Vector4.to_Vector3(Vector4.to_horizontal(np.matmul(self.inverse_ortho_transform, \
             Vector4.to_vertical(Vector3.to_Vector4(p)))))
