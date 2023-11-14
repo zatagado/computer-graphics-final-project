@@ -335,9 +335,13 @@ class Renderer:
                             image_buffer[x, y] = shade_texture_correct(self.camera, texture_pixels, texture_width, texture_height, uv_tri, \
                                 ndc_tri, alpha, beta, gamma)
                         elif shading == "shadow-map":
-                            screen = Vector3.add(Vector3.add(Vector3.mul(screen_tri[0], alpha), Vector3.mul(screen_tri[1], beta)), Vector3.mul(screen_tri[2], gamma))
-                            if screen[0] != x or screen[1] != y:
-                                print(f'x: {screen[0]} vs {x}\ny: {screen[1]} vs {y}')
+                            screen = Vector2.add(Vector2.add(Vector2.mul(screen_tri[0], alpha), Vector2.mul(screen_tri[1], beta)), Vector2.mul(screen_tri[2], gamma))
+                            if abs(math.floor(screen[0]) - x) > 1 or abs(math.floor(screen[1]) - y) > 1:
+                                print(f'x: {math.floor(screen[0])} vs {x}\ny: {math.floor(screen[1])} vs {y}')
+                            
+                            if 250 < x and x < 252 and 140 < y and y < 142:
+                                image_buffer[x, y] = (255, 0, 0)
+                                continue
                             image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
 
             if shading == "texture" or shading == "texture-correct":
