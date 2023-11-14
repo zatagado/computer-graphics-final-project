@@ -38,14 +38,11 @@ if __name__ == '__main__':
     # sim_pos = Vector3.mul(light.transform.apply_to_normal(Vector3.forward()), -10)
 
     lightSim = PerspectiveCamera(1.0, -1.0, -1.0, 1.0, -1.0, 20)
-    # lightSim.transform.set_rotation(0, -45, -90)
-    # lightSim.transform.set_rotation(0, 0, -45)
     # lightSim.transform.set_axis_rotation(np.array([1, 1, 1], dtype=float), 0)
     # lightSim.transform.set_position(sim_pos)
-    lightSim.transform.set_position(0, 5, 0)
-    # lightSim.transform.set_rotation_towards(Vector3.negate(Vector3.normalize([5, 5, 5])))
-    lightSim.transform.set_rotation_towards(Vector3.forward())
-
+    lightSim.transform.set_position(5, 5, 5)
+    lightSim.transform.set_rotation_towards(Vector3.normalize(Vector3.sub(mesh_1.transform.get_position(), lightSim.transform.get_position())))
+    
     # light = PointLight(50.0, np.array([1, 1, 1]))
     # light.transform.set_position(-4, 4, -3)
 
