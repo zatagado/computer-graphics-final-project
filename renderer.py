@@ -6,11 +6,12 @@ import numpy as np
 import math
 
 class Renderer:
-    def __init__(self, screen: Screen, camera, meshes: list, light):
+    def __init__(self, screen: Screen, camera, meshes: list, light, shadow_map):
         self.screen = screen
         self.camera = camera
         self.meshes = meshes
         self.light = light
+        self.shadow_map = shadow_map
 
     def render(self, shading, bg_color, ambient_light):
         def get_pixel_bounds(screen_coords_verts, screen_width, screen_height):
@@ -330,4 +331,9 @@ class Renderer:
             if shading == "texture" or shading == "texture-correct":
                 mesh.texture.close()
 
+        # # ! Confirmation that the shadow map is rendering the correct depth map
+        # for x in range(0, self.screen.width):
+        #     for y in range(0, self.screen.height):
+        #         if depth_buffer[x, y] != -math.inf and abs(depth_buffer[x, y] - self.shadow_map.depth_buffer[x, y]) > 0.0000001:
+        #             print("inequal")
         self.screen.draw(image_buffer)
