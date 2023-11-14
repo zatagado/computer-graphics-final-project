@@ -221,6 +221,12 @@ class Renderer:
 
             return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
 
+        def shade_shadow_map(shadow_map, world_tri, alpha, beta, gamma):
+            p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
+                Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
+            in_light = shadow_map.check_occlusion(p)
+            return (255 * in_light, 255 * in_light, 255 * in_light)
+
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
 
@@ -327,11 +333,13 @@ class Renderer:
                         elif shading == "texture-correct":
                             image_buffer[x, y] = shade_texture_correct(self.camera, texture_pixels, texture_width, texture_height, uv_tri, \
                                 ndc_tri, alpha, beta, gamma)
+                        elif shading == "shadow-map":
+                            image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
 
             if shading == "texture" or shading == "texture-correct":
                 mesh.texture.close()
 
-        # # ! Confirmation that the shadow map is rendering the correct depth map
+        #! Confirmation that the shadow map is rendering the correct depth map
         # for x in range(0, self.screen.width):
         #     for y in range(0, self.screen.height):
         #         if depth_buffer[x, y] != -math.inf and abs(depth_buffer[x, y] - self.shadow_map.depth_buffer[x, y]) > 0.0000001:

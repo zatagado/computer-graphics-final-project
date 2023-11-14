@@ -6,7 +6,13 @@ from render_math import Vector3
 from mesh import Mesh
 
 class ShadowMap:
-    def __init__(self, meshes, light: DirectionalLight, orthoCamera: OrthoCamera, resolution): 
+    def device_to_screen(self, p):
+        p_screen = Vector3.to_Vector2(p)
+        p_screen[0] = (p_screen[0] + 1) * (self.resolution[0] / 2)
+        p_screen[1] = (p_screen[1] + 1) * (self.resolution[1] / 2)
+        return p_screen
+    
+    def __init__(self, meshes, light: DirectionalLight, orthoCamera: OrthoCamera, resolution, bias): 
         def get_pixel_bounds(screen_coords_verts, width, height):
             bounding_rect_min = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             bounding_rect_max = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
@@ -53,12 +59,6 @@ class ShadowMap:
                 bounding_rect_max[1] = 0
 
             return [bounding_rect_min, bounding_rect_max]
-        
-        def device_to_screen(resolution, p):
-            p_screen = Vector3.to_Vector2(p)
-            p_screen[0] = (p_screen[0] + 1) * (resolution[0] / 2)
-            p_screen[1] = (p_screen[1] + 1) * (resolution[1] / 2)
-            return p_screen
 
         def fill_depth_buffer(meshes, orthoCamera, resolution):
             depth_buffer = np.full(resolution, -math.inf, dtype=float)
@@ -68,7 +68,7 @@ class ShadowMap:
 
                 world_verts = [mesh.transform.apply_to_point(p) for p in mesh.verts]
                 ndc_verts = [orthoCamera.project_point(p) for p in world_verts]
-                screen_verts = [device_to_screen(resolution, p) for p in ndc_verts]
+                screen_verts = [self.device_to_screen(p) for p in ndc_verts]
 
                 for j in range(len(mesh.faces)):
                     face = mesh.faces[j]
@@ -130,17 +130,16 @@ class ShadowMap:
             return depth_buffer
             
         #* We must scale the orthoCamera to cover the entire screen. The shadow mapper does not currently do this automatically.
-        #* We don't care about the position of the camera. Instead mess with the near plane.
+        #* We don't care about the position of the camera. Instead move the camera near plane.
         self.orthoCamera = orthoCamera
         # Rotate the camera the same direction the light is facing
         self.orthoCamera.transform.set_rotation_towards(light.transform.apply_to_normal(Vector3.negate(Vector3.forward())))
-        
+        self.resolution = resolution
+        self.bias = bias
+        # Fill the depth buffer with depths from the viewpoint of the light source
         self.depth_buffer = fill_depth_buffer(meshes, orthoCamera, resolution)
 
-
-
-
-    def checkOcclusion(self, p): #* point must be within world space
+    def check_occlusion(self, p): #* point must be within world space
         # TODO point is some distance away from the eye
         # TODO can find out xyz in world space of pixel within screen coordinates
         # TODO can figure out the pixel that xyz corresponds to within the shadow map
@@ -149,4 +148,16 @@ class ShadowMap:
         # TODO use the orthographic projection for straight rays
 
         # TODO add bias to occluder estimation
-        pass
+
+        # TODO return 0 if dark and 1 if light
+
+        ndc_vert = self.orthoCamera.project_point(p)
+        screen_vert = self.device_to_screen(ndc_vert)
+
+        # ? where should the pixel lie, floor or ceil or somewhere in the middle?
+        x = math.floor(screen_vert[0])
+        y = math.floor(screen_vert[1])
+        depth = ndc_vert[2]
+        if depth > 1 or depth < -1: 
+            return 1
+        return 0 if ((depth + 1) / 2) + self.bias < self.depth_buffer[x, y] else 1 # TODO bias 
