@@ -280,13 +280,13 @@ class Renderer:
                         # barycentric coordinate checking
                         # ? What happens when there is a negative divisor
                         gammaDivisor = (((y_a - y_b) * x_c) + ((x_b - x_a) * y_c) + (x_a * y_b) - (x_b * y_a))
-                        # if gammaDivisor == 0 or gammaDivisor == math.nan:
-                        #     print("gamma bad")
+                        if gammaDivisor == 0:
+                            gammaDivisor = 0.0000001
                         gamma = (((y_a - y_b) * x) + ((x_b - x_a) * y) + (x_a * y_b) - (x_b * y_a)) / gammaDivisor
                             
                         betaDivisor = (((y_a - y_c) * x_b) + ((x_c - x_a) * y_b) + (x_a * y_c) - (x_c * y_a))
-                        # if betaDivisor == 0 or betaDivisor == math.nan:
-                        #     print("beta bad")
+                        if betaDivisor == 0:
+                            betaDivisor = 0.0000001
                         beta = (((y_a - y_c) * x) + ((x_c - x_a) * y) + (x_a * y_c) - (x_c * y_a)) / betaDivisor
 
                         alpha = 1 - beta - gamma
@@ -314,7 +314,7 @@ class Renderer:
                         elif shading == "barycentric":
                             image_buffer[x, y] = shade_barycentric(alpha, beta, gamma)
                         elif shading == "depth":
-                            image_buffer[x, y] = shade_depth(depth) #? How do you actually normalize depth values, mine are already from -1 to 0
+                            image_buffer[x, y] = shade_depth(depth)
                         elif shading == "phong-blinn":
                             image_buffer[x, y] = shade_phong_blinn(ambient_light, self.light, self.camera, mesh, \
                                 world_tri, world_tri_vert_normals, alpha, beta, gamma)
