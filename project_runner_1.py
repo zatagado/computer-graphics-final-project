@@ -49,12 +49,8 @@ if __name__ == '__main__':
 
     shadow_map = ShadowMap([mesh_1, mesh_2, mesh_3, mesh_4], light, OrthoCamera(7, -7, -7, 7, 5.0, -20), (screen.width, screen.height), 0.1)
     
-    #* Grouping for rendering from light pov
-    renderer = Renderer(screen, shadow_map.orthoCamera, [mesh_1, mesh_2, mesh_3, mesh_4], light, shadow_map)
-    renderer.render("depth", [80, 80, 80], [0.2, 0.2, 0.2]) # TODO find out the issue with the ambient light when color is changed
-
     #* Grouping for rendering from camera pov
-    # renderer = Renderer(screen, camera, [mesh_1, mesh_2, mesh_3, mesh_4], light, shadow_map)
-    # renderer.render("shadow-map", [80, 80, 80], [0.2, 0.2, 0.2]) # TODO find out the issue with the ambient light when color is changed
+    renderer = Renderer(screen, camera, [mesh_1, mesh_2, mesh_3, mesh_4], light, shadow_map)
+    renderer.render("shadow-map", [80, 80, 80], [0.2, 0.2, 0.2]) # TODO find out the issue with the ambient light when color is changed
 
     screen.show()

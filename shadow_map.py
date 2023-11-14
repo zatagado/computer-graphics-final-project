@@ -5,6 +5,8 @@ from camera import OrthoCamera
 from render_math import Vector3
 from mesh import Mesh
 
+from debug import Store
+
 class ShadowMap:
     def device_to_screen(self, p):
         p_screen = Vector3.to_Vector2(p)
@@ -134,6 +136,7 @@ class ShadowMap:
         self.orthoCamera = orthoCamera
         # Rotate the camera the same direction the light is facing
         self.orthoCamera.transform.set_rotation_towards(light.transform.apply_to_normal(Vector3.negate(Vector3.forward())))
+        self.orthoCamera.transform.set_position(light.transform.get_position()) # ! The position probably doesn't matter
         self.resolution = resolution
         self.bias = bias
         # Fill the depth buffer with depths from the viewpoint of the light source
@@ -151,7 +154,7 @@ class ShadowMap:
 
         # TODO return 0 if dark and 1 if light
 
-        ndc_vert = self.orthoCamera.project_point(p)
+        ndc_vert = self.orthoCamera.project_point(p) #! this outputs the wrong position
         screen_vert = self.device_to_screen(ndc_vert)
 
         # ? where should the pixel lie, floor or ceil or somewhere in the middle?
@@ -160,4 +163,9 @@ class ShadowMap:
         depth = ndc_vert[2]
         if depth > 1 or depth < -1: 
             return 1
+        if Store.boolean:
+            print(ndc_vert)
+            print(screen_vert)
+            print(f'x: {x}\ny: {y}')
+            Store.boolean = False
         return 0 if ((depth + 1) / 2) + self.bias < self.depth_buffer[x, y] else 1 # TODO bias 

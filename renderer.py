@@ -4,6 +4,7 @@ from render_math import Vector2, Vector3, Vector4, Shader
 from light import PointLight, DirectionalLight
 import numpy as np
 import math
+from debug import Store
 
 class Renderer:
     def __init__(self, screen: Screen, camera, meshes: list, light, shadow_map):
@@ -224,8 +225,16 @@ class Renderer:
         def shade_shadow_map(shadow_map, world_tri, alpha, beta, gamma):
             p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
+            
+            if 250 < x and x < 252 and 140 < y and y < 142:
+                Store.boolean = True
+                in_light = shadow_map.check_occlusion(p)
+                print(p)
+                print(world_tri)
+                return (50, 255, 50)
+
             in_light = shadow_map.check_occlusion(p)
-            return (255 * in_light, 255 * in_light, 255 * in_light)
+            return (150 * in_light, 0 * in_light, 0 * in_light)
 
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
@@ -339,10 +348,15 @@ class Renderer:
                             if abs(math.floor(screen[0]) - x) > 1 or abs(math.floor(screen[1]) - y) > 1:
                                 print(f'x: {math.floor(screen[0])} vs {x}\ny: {math.floor(screen[1])} vs {y}')
                             
-                            if 250 < x and x < 252 and 140 < y and y < 142:
+                            image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
+                        elif shading == "debug":
+                            depth_norm = (depth + 1) / 2
+                            
+                            if x == 362 and y == 362:
                                 image_buffer[x, y] = (255, 0, 0)
                                 continue
-                            image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
+
+                            image_buffer[x, y] = (255 * depth_norm, 255 * depth_norm, 255 * depth_norm)
 
             if shading == "texture" or shading == "texture-correct":
                 mesh.texture.close()
