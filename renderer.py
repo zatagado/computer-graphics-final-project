@@ -225,12 +225,9 @@ class Renderer:
         def shade_shadow_map(shadow_map, world_tri, alpha, beta, gamma):
             p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
-            
-            if 250 < x and x < 252 and 140 < y and y < 142:
-                Store.boolean = True
-                in_light = shadow_map.check_occlusion(p)
-                print(p)
-                print(world_tri)
+
+            if x == 250 and y == 162:
+                print(f'point {p}')
                 return (50, 255, 50)
 
             in_light = shadow_map.check_occlusion(p)
@@ -297,11 +294,15 @@ class Renderer:
                         # ? What happens when there is a negative divisor
                         gammaDivisor = (((y_a - y_b) * x_c) + ((x_b - x_a) * y_c) + (x_a * y_b) - (x_b * y_a))
                         if gammaDivisor == 0:
+                            if x == 250 and y == 162:
+                                print('gamma bad')
                             gammaDivisor = 0.0000001
                         gamma = (((y_a - y_b) * x) + ((x_b - x_a) * y) + (x_a * y_b) - (x_b * y_a)) / gammaDivisor
                             
                         betaDivisor = (((y_a - y_c) * x_b) + ((x_c - x_a) * y_b) + (x_a * y_c) - (x_c * y_a))
                         if betaDivisor == 0:
+                            if x == 250 and y == 162:
+                                print('beta bad')
                             betaDivisor = 0.0000001
                             # TODO return -1 -1 -1
                         beta = (((y_a - y_c) * x) + ((x_c - x_a) * y) + (x_a * y_c) - (x_c * y_a)) / betaDivisor
@@ -311,6 +312,28 @@ class Renderer:
                         # ignore pixel outside of triangle
                         if gamma < 0 or beta < 0 or alpha < 0:
                             continue
+
+                        if x == 250 and y == 162: # ! Screen tri could be wrong
+                            print(f'a {alpha} b {beta} g {gamma}')
+                            pa = Vector3.add(Vector3.mul(world_tri[0], alpha), \
+                                Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
+                            
+                            pb = Vector3.add(Vector3.mul(world_tri[0], beta), \
+                                Vector3.add(Vector3.mul(world_tri[1], gamma), Vector3.mul(world_tri[2], alpha)))
+                            
+                            pc = Vector3.add(Vector3.mul(world_tri[0], gamma), \
+                                Vector3.add(Vector3.mul(world_tri[1], alpha), Vector3.mul(world_tri[2], beta)))
+                            
+                            pd = Vector3.add(Vector3.mul(world_tri[0], alpha), \
+                                Vector3.add(Vector3.mul(world_tri[1], gamma), Vector3.mul(world_tri[2], beta)))
+                            
+                            pe = Vector3.add(Vector3.mul(world_tri[0], beta), \
+                                Vector3.add(Vector3.mul(world_tri[1], alpha), Vector3.mul(world_tri[2], gamma)))
+                            
+                            pf = Vector3.add(Vector3.mul(world_tri[0], gamma), \
+                                Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], alpha)))
+                            
+                            print(f'pa {pa}\npb {pb}\npc {pc}\npd {pd}\npe {pe}\npf {pf}\n')
 
                         # ignore pixel outside near far bounds
                         depth = Vector3.add(Vector3.mul(ndc_tri[0], alpha), Vector3.add(Vector3.mul(ndc_tri[1], beta), Vector3.mul(ndc_tri[2], gamma)))[2]
@@ -344,15 +367,24 @@ class Renderer:
                             image_buffer[x, y] = shade_texture_correct(self.camera, texture_pixels, texture_width, texture_height, uv_tri, \
                                 ndc_tri, alpha, beta, gamma)
                         elif shading == "shadow-map":
-                            screen = Vector2.add(Vector2.add(Vector2.mul(screen_tri[0], alpha), Vector2.mul(screen_tri[1], beta)), Vector2.mul(screen_tri[2], gamma))
-                            if abs(math.floor(screen[0]) - x) > 1 or abs(math.floor(screen[1]) - y) > 1:
-                                print(f'x: {math.floor(screen[0])} vs {x}\ny: {math.floor(screen[1])} vs {y}')
+                            # screen = Vector2.add(Vector2.add(Vector2.mul(screen_tri[0], alpha), Vector2.mul(screen_tri[1], beta)), Vector2.mul(screen_tri[2], gamma))
+                            # image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
                             
-                            image_buffer[x, y] = shade_shadow_map(self.shadow_map, world_tri, alpha, beta, gamma)
+                            p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
+                                Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
+
+                            if x == 250 and y == 162:
+                                # print(f'point {p}')
+                                print(f'world {world_tri}')
+                                image_buffer[x, y] = (50, 255, 50)
+                                continue
+
+                            in_light = self.shadow_map.check_occlusion(p)
+                            image_buffer[x, y] = (150 * in_light, 0 * in_light, 0 * in_light)
                         elif shading == "debug":
                             depth_norm = (depth + 1) / 2
                             
-                            if x == 362 and y == 362:
+                            if x == 250 and y == 250:
                                 image_buffer[x, y] = (255, 0, 0)
                                 continue
 
