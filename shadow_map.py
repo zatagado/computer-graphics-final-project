@@ -5,8 +5,6 @@ from camera import OrthoCamera
 from render_math import Vector3
 from mesh import Mesh
 
-from debug import Store
-
 class ShadowMap:
     def device_to_screen(self, p):
         p_screen = Vector3.to_Vector2(p)
@@ -143,29 +141,18 @@ class ShadowMap:
         self.depth_buffer = fill_depth_buffer(meshes, orthoCamera, resolution)
 
     def check_occlusion(self, p): #* point must be within world space
-        # TODO point is some distance away from the eye
-        # TODO can find out xyz in world space of pixel within screen coordinates
-        # TODO can figure out the pixel that xyz corresponds to within the shadow map
-        # TODO then find out if the depth within the depth map is the same as the depth of that pixel that was just checked
+        ndc_vert = self.orthoCamera.project_point(p) 
         
-        # TODO use the orthographic projection for straight rays
+        if ndc_vert[0] < -1 or 1 < ndc_vert[0] or ndc_vert[1] < -1 or 1 < ndc_vert[1]:
+            return 1
 
-        # TODO add bias to occluder estimation
-
-        # TODO return 0 if dark and 1 if light
-
-        ndc_vert = self.orthoCamera.project_point(p) #! this outputs the wrong position
-        screen_vert = self.device_to_screen(ndc_vert)
-
-        # ? where should the pixel lie, floor or ceil or somewhere in the middle?
-        x = math.floor(screen_vert[0])
-        y = math.floor(screen_vert[1]) #? is there some issue with the pixel being flipped
         depth = ndc_vert[2]
         if depth > 1 or depth < -1: 
             return 1
-        # if Store.boolean:
-        #     print(ndc_vert)
-        #     print(screen_vert)
-        #     print(f'x: {x}\ny: {y}')
-        #     Store.boolean = False
-        return 0 if ((depth + 1) / 2) + self.bias < self.depth_buffer[x, y] else 1 # TODO bias 
+
+        screen_vert = self.device_to_screen(ndc_vert)
+
+        x = math.floor(screen_vert[0])
+        y = math.floor(screen_vert[1])
+
+        return 0 if ((depth + 1) / 2) + self.bias < self.depth_buffer[x, y] else 1

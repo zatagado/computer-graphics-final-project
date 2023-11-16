@@ -97,7 +97,7 @@ class Vector3:
     def div(a: np.ndarray, b: float):
         if b == 0:
             b = 0.0000001
-        return np.array([a[0] / b, a[1] / b, a[2] / b])
+        return np.array([a[0] / b, a[1] / b, a[2] / b], dtype=float)
     
     @staticmethod
     def equals(a: np.ndarray, b: np.ndarray):
@@ -125,11 +125,19 @@ class Vector3:
 
 class Vector4:
     @staticmethod
+    def add(a: np.ndarray, b: np.ndarray):
+        return np.array([a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]], dtype=float)
+    
+    @staticmethod
+    def sub(a: np.ndarray, b: np.ndarray):
+        return np.array([a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]], dtype=float)
+
+    @staticmethod
     def mul(a: np.ndarray, b):
         if isinstance(b, float):
-            return np.array([a[0] * b, a[1] * b, a[2] * b, a[3] * b])
+            return np.array([a[0] * b, a[1] * b, a[2] * b, a[3] * b], dtype=float)
         elif isinstance(b, np.ndarray) or isinstance(b, list):
-            return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]])
+            return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]], dtype=float)
         else:
             raise Exception('b was not correct type.')
 
@@ -137,7 +145,7 @@ class Vector4:
     def div(a: np.ndarray, b: float):
         if b == 0:
             b = 0.0000001
-        return np.array([a[0] / b, a[1] / b, a[2] / b, a[3] / b])
+        return np.array([a[0] / b, a[1] / b, a[2] / b, a[3] / b], dtype=float)
 
     @staticmethod
     def to_vertical(a: np.ndarray):
