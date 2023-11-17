@@ -13,10 +13,15 @@ class Transform:
         return np.array([self.model_matrix[0][3], self.model_matrix[1][3], \
             self.model_matrix[2][3]], dtype=float)
 
-    def set_position(self, x, y, z):
-        self.model_matrix[0][3] = x
-        self.model_matrix[1][3] = y
-        self.model_matrix[2][3] = z
+    def set_position(self, x, y=None, z=None):
+        if isinstance(x, float) or isinstance(x, int):
+            self.model_matrix[0][3] = x
+            self.model_matrix[1][3] = y
+            self.model_matrix[2][3] = z
+        else:
+            self.model_matrix[0][3] = x[0]
+            self.model_matrix[1][3] = x[1]
+            self.model_matrix[2][3] = x[2]
 
     def __rotate_x(self, degrees):
         radians = math.radians(degrees)
@@ -72,3 +77,31 @@ class Transform:
         radians = math.radians(rotation)
         self.model_matrix = Matrix.overwrite(self.model_matrix, np.add(np.add(np.identity(3, dtype=float)\
             , k * math.sin(radians)), np.matmul(k, k) * (1 - math.cos(radians))), 0, 0)
+        
+    # modified from source: https://stackoverflow.com/questions/18558910/direction-vector-to-rotation-matrix
+    def set_rotation_towards(self, direction):
+        direction = Vector3.normalize(Vector3.negate(direction)) # TODO not sure why this is needed
+        up=[0, 0, 1]
+        xAxis = None
+        zAxis = None
+        if direction[2] == 1:
+            xAxis = [1, 0, 0]
+            zAxis = [0, -1, 0]
+        elif direction[2] == -1:
+            xAxis = [1, 0, 0]
+            zAxis = [0, 1, 0]
+        else:
+            xAxis = Vector3.normalize(Vector3.cross(direction, up))
+            zAxis = Vector3.normalize(Vector3.cross(xAxis, direction))
+
+        self.model_matrix[0][0] = xAxis[0]
+        self.model_matrix[1][0] = xAxis[1]
+        self.model_matrix[2][0] = xAxis[2]
+
+        self.model_matrix[0][1] = direction[0]
+        self.model_matrix[1][1] = direction[1]
+        self.model_matrix[2][1] = direction[2]
+
+        self.model_matrix[0][2] = zAxis[0]
+        self.model_matrix[1][2] = zAxis[1]
+        self.model_matrix[2][2] = zAxis[2]

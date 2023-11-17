@@ -4,7 +4,7 @@ import numpy as np
 class Shader:
     @staticmethod
     def step(a, b):
-        return 1 if a > b else 0
+        return 1 if a >= b else 0
 
 class Vector2:
     @staticmethod
@@ -30,10 +30,21 @@ class Vector2:
 
     @staticmethod
     def to_Vector3(a: np.ndarray):
-        return np.append(a, 1)
+        # return np.append(a, 1)
+        return np.array([a[0], a[1], 1], dtype=float)
 
 class Vector3:
-    # TODO vector3 forward, up, right
+    @staticmethod
+    def forward():
+        return np.array([0, 1, 0], dtype=float)
+    
+    @staticmethod
+    def up():
+        return np.array([0, 0, 1], dtype=float)
+    
+    @staticmethod
+    def right():
+        return np.array([1, 0, 0], dtype=float)
 
     @staticmethod
     def negate(a):
@@ -84,7 +95,9 @@ class Vector3:
     
     @staticmethod
     def div(a: np.ndarray, b: float):
-        return np.array([a[0] / b, a[1] / b, a[2] / b])
+        if b == 0:
+            b = 0.0000001
+        return np.array([a[0] / b, a[1] / b, a[2] / b], dtype=float)
     
     @staticmethod
     def equals(a: np.ndarray, b: np.ndarray):
@@ -92,45 +105,62 @@ class Vector3:
     
     @staticmethod
     def to_vertical(a: np.ndarray):
-        return np.swapaxes([a], 0, 1)
+        # return np.swapaxes([a], 0, 1)
+        return np.array([[a[0]], [a[1]], [a[2]]], dtype=float)
     
     @staticmethod
     def to_horizontal(a: np.ndarray):
-        return np.swapaxes(a, 0, 1)[0]
+        # return np.swapaxes(a, 0, 1)[0]
+        return np.array([a[0][0], a[1][0], a[2][0]], dtype=float)
 
     @staticmethod
     def to_Vector2(a: np.ndarray):
-        return a[:2]
+        # return a[:2]
+        return np.array([a[0], a[1]], dtype=float)
 
     @staticmethod
     def to_Vector4(a: np.ndarray):
-        return np.append(a, 1)
+        # return np.append(a, 1)
+        return np.array([a[0], a[1], a[2], 1], dtype=float)
 
 class Vector4:
     @staticmethod
+    def add(a: np.ndarray, b: np.ndarray):
+        return np.array([a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]], dtype=float)
+    
+    @staticmethod
+    def sub(a: np.ndarray, b: np.ndarray):
+        return np.array([a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]], dtype=float)
+
+    @staticmethod
     def mul(a: np.ndarray, b):
         if isinstance(b, float):
-            return np.array([a[0] * b, a[1] * b, a[2] * b, a[3] * b])
+            return np.array([a[0] * b, a[1] * b, a[2] * b, a[3] * b], dtype=float)
         elif isinstance(b, np.ndarray) or isinstance(b, list):
-            return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]])
+            return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]], dtype=float)
         else:
             raise Exception('b was not correct type.')
 
     @staticmethod
     def div(a: np.ndarray, b: float):
-        return np.array([a[0] / b, a[1] / b, a[2] / b, a[3] / b])
+        if b == 0:
+            b = 0.0000001
+        return np.array([a[0] / b, a[1] / b, a[2] / b, a[3] / b], dtype=float)
 
     @staticmethod
     def to_vertical(a: np.ndarray):
-        return np.swapaxes([a], 0, 1)
+        # return np.swapaxes([a], 0, 1)
+        return np.array([[a[0]], [a[1]], [a[2]], [a[3]]], dtype=float)
     
     @staticmethod
     def to_horizontal(a: np.ndarray):
-        return np.swapaxes(a, 0, 1)[0]
+        # return np.swapaxes(a, 0, 1)[0]
+        return np.array([a[0][0], a[1][0], a[2][0], a[3][0]], dtype=float)
 
     @staticmethod
     def to_Vector3(a: np.ndarray):
-        return a[:3]
+        # return a[:3]
+        return np.array([a[0], a[1], a[2]], dtype=float)
 
 class Matrix:
     # Overwrite part of a with b. 

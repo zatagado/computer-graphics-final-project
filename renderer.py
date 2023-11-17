@@ -1,15 +1,18 @@
 from screen import Screen
 from mesh import Mesh
 from render_math import Vector2, Vector3, Vector4, Shader
+from light import PointLight, DirectionalLight
+from camera import PerspectiveCamera
 import numpy as np
 import math
 
 class Renderer:
-    def __init__(self, screen: Screen, camera, meshes: list, light):
+    def __init__(self, screen: Screen, camera, meshes: list, light, shadow_map):
         self.screen = screen
         self.camera = camera
         self.meshes = meshes
         self.light = light
+        self.shadow_map = shadow_map
 
     def render(self, shading, bg_color, ambient_light):
         def get_pixel_bounds(screen_coords_verts, screen_width, screen_height):
@@ -59,7 +62,14 @@ class Renderer:
 
             return [bounding_rect_min, bounding_rect_max]
 
-        def shade_flat(ambient_light, light, mesh, world_tri, normal, alpha, beta, gamma):
+        def perspective_correction_w(camera, p):
+            p_copy = np.array(p, dtype=float)
+            p_copy[1], p_copy[2] = p_copy[2], p_copy[1]
+            p_persp = np.matmul(camera.inverse_ortho_transform, Vector4.to_vertical(Vector3.to_Vector4(p_copy)))
+            w = (camera.far * camera.near) / ((camera.near + camera.far) - p_persp[1][0])
+            return w
+
+        def shade_flat(light, ambient_light, mesh, world_tri, normal, alpha, beta, gamma):
             p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
             
@@ -90,42 +100,79 @@ class Renderer:
             depth_norm = (depth + 1) / 2
             return (255 * depth_norm, 255 * depth_norm, 255 * depth_norm)
         
-        def shade_phong_blinn(ambient_light, light, camera, mesh, world_tri, world_tri_vert_normals, alpha, beta, gamma):
+        def shade_phong_blinn(camera, light, ambient_light, shadow_map, mesh, world_tri, world_tri_vert_normals, alpha, beta, gamma):
+            o = mesh.diffuse_color
+            kd = mesh.kd
+            l_color = light.color
+            
             p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
             
             n = mesh.transform.apply_to_normal(Vector3.add(Vector3.mul(world_tri_vert_normals[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri_vert_normals[1], beta), \
                 Vector3.mul(world_tri_vert_normals[2], gamma))))
-            l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
 
-            o = mesh.diffuse_color
-            kd = mesh.kd
-            phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
-            phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+            if isinstance(light, DirectionalLight):
+                p_sm = None
+                if isinstance(camera, PerspectiveCamera):
+                    p_sm = Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[0]), perspective_correction_w(self.camera, ndc_tri[0])), alpha), \
+                        Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[1]), perspective_correction_w(self.camera, ndc_tri[1])), beta), \
+                        Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[2]), perspective_correction_w(self.camera, ndc_tri[2])), gamma)))
+                    p_sm = Vector4.to_Vector3(Vector4.div(p_sm, p_sm[3]))
+                else:
+                    p_sm = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector4.mul(world_tri[1], beta), \
+                        Vector3.mul(world_tri[2], gamma)))
+                in_light = shadow_map.check_occlusion(p_sm)
 
-            l_color = light.color
-            l_intensity = light.intensity
-            l_distance = Vector3.dist(light.transform.get_position(), p)
-            id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
-            
-            d = Vector3.mul(id, phi_d)
+                l = light.transform.apply_to_normal(Vector3.forward())
 
-            # camera transform get position - p norm
-            v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
-            h = Vector3.normalize(Vector3.add(l, v))
+                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * in_light, 0)), np.pi)
+                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
 
-            i_s = mesh.specular_color
-            ks = mesh.ks
-            ke = mesh.ke
-            phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+                d = Vector3.mul(l_color, phi_d)
 
-            s = Vector3.mul(i_s, phi_s) # TODO looks slightly off on depth 2
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
 
-            a = Vector3.mul(ambient_light, mesh.ka)
+                i_s = mesh.specular_color
+                ks = mesh.ks
+                ke = mesh.ke
 
-            final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
-            return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+
+                s = Vector3.mul(i_s, phi_s)
+
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
+                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+            elif isinstance(light, PointLight):
+                l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
+
+                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
+                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+
+                l_intensity = light.intensity
+                l_distance = Vector3.dist(light.transform.get_position(), p)
+                id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
+                
+                d = Vector3.mul(id, phi_d)
+
+                # camera transform get position - p norm
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
+
+                i_s = mesh.specular_color
+                ks = mesh.ks
+                ke = mesh.ke
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+
+                s = Vector3.mul(i_s, phi_s)
+
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
+                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
 
         def shade_gouraud_vertex(vertex_colors, face, ambient_light, light, camera, mesh, world_tri, world_tri_vert_normals):
             for i in range(3):
@@ -154,7 +201,7 @@ class Renderer:
                     ke = mesh.ke
                     phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
 
-                    s = Vector3.mul(i_s, phi_s) # TODO looks slightly off on depth 2
+                    s = Vector3.mul(i_s, phi_s)
 
                     a = Vector3.mul(ambient_light, mesh.ka)
 
@@ -173,37 +220,104 @@ class Renderer:
 
             return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
 
-        # def shade_texture_correct(texture_pixels, texture_width, texture_height, uv_tri, ndc_tri, \
-        #     alpha, beta, gamma):
-        #     # TODO something is wrong, seemed better with ndc_tri[1]
-        #     uv = Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[0]), (ndc_tri[0][2] + 1) / 2), alpha), \
-        #         Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[1]), (ndc_tri[1][2] + 1) / 2), beta), \
-        #         Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[2]), (ndc_tri[2][2] + 1) / 2), gamma)))
-
-        #     x = math.floor((texture_width - 1) * (uv[0] / uv[2]))
-        #     y = math.floor((texture_height - 1) * (1 - (uv[1] / uv[2])))
-
-        #     return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
-
         def shade_texture_correct(camera, texture_pixels, texture_width, texture_height, uv_tri, ndc_tri, \
             alpha, beta, gamma):
-            def get_w(camera, p):
-                p_copy = np.array(p, dtype=float)
-                p_copy[1], p_copy[2] = p_copy[2], p_copy[1]
-                p_persp = np.matmul(camera.inverse_ortho_transform, Vector4.to_vertical(Vector3.to_Vector4(p_copy)))
-                y = (camera.far * camera.near) / ((camera.near + camera.far) - p_persp[1])
-                return y
 
-            # TODO something is wrong, seemed better with ndc_tri[1]
-            # ? does it matter if we use the depth pre inverse perspective or not?
-            uv = Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[0]), get_w(camera, ndc_tri[0])), alpha), \
-                Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[1]), get_w(camera, ndc_tri[1])), beta), \
-                Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[2]), get_w(camera, ndc_tri[2])), gamma)))
+            uv = Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[0]), perspective_correction_w(camera, ndc_tri[0])), alpha), \
+                Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[1]), perspective_correction_w(camera, ndc_tri[1])), beta), \
+                Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[2]), perspective_correction_w(camera, ndc_tri[2])), gamma)))
 
             x = math.floor((texture_width - 1) * (uv[0] / uv[2]))
             y = math.floor((texture_height - 1) * (1 - (uv[1] / uv[2])))
 
             return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
+
+        def shade_shadow_map(camera, shadow_map, world_tri, alpha, beta, gamma):
+            p = None
+            if isinstance(camera, PerspectiveCamera):
+                p = Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[0]), perspective_correction_w(self.camera, ndc_tri[0])), alpha), \
+                    Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[1]), perspective_correction_w(self.camera, ndc_tri[1])), beta), \
+                    Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[2]), perspective_correction_w(self.camera, ndc_tri[2])), gamma)))
+                p = Vector4.to_Vector3(Vector4.div(p, p[3]))
+            else:
+                p = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector4.mul(world_tri[1], beta), \
+                    Vector3.mul(world_tri[2], gamma)))
+            in_light = shadow_map.check_occlusion(p)
+            return (255 * in_light, 255 * in_light, 255 * in_light)
+
+        def shade_stylized(camera, light, ambient_light, shadow_map, mesh, world_tri, world_tri_vert_normals, alpha, beta, gamma):
+            o = mesh.diffuse_color
+            kd = mesh.kd
+            l_color = light.color
+            
+            p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
+                Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
+            
+            n = mesh.transform.apply_to_normal(Vector3.add(Vector3.mul(world_tri_vert_normals[0], alpha), \
+                Vector3.add(Vector3.mul(world_tri_vert_normals[1], beta), \
+                Vector3.mul(world_tri_vert_normals[2], gamma))))
+
+            if isinstance(light, DirectionalLight):
+                p_sm = None
+                if isinstance(camera, PerspectiveCamera):
+                    p_sm = Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[0]), perspective_correction_w(self.camera, ndc_tri[0])), alpha), \
+                        Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[1]), perspective_correction_w(self.camera, ndc_tri[1])), beta), \
+                        Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[2]), perspective_correction_w(self.camera, ndc_tri[2])), gamma)))
+                    p_sm = Vector4.to_Vector3(Vector4.div(p_sm, p_sm[3]))
+                else:
+                    p_sm = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector4.mul(world_tri[1], beta), \
+                        Vector3.mul(world_tri[2], gamma)))
+                in_light = shadow_map.check_occlusion(p_sm)
+
+                l = light.transform.apply_to_normal(Vector3.forward())
+
+                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * in_light, 0)), np.pi)
+                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+
+                d = Vector3.mul(l_color, phi_d)
+
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
+
+                i_s = mesh.specular_color
+                ks = mesh.ks
+                ke = mesh.ke
+
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+
+                s = Vector3.mul(i_s, phi_s)
+
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
+                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+            elif isinstance(light, PointLight):
+                l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
+
+                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
+                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+
+                l_intensity = light.intensity
+                l_distance = Vector3.dist(light.transform.get_position(), p)
+                id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
+                
+                d = Vector3.mul(id, phi_d)
+
+                # camera transform get position - p norm
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
+
+                i_s = mesh.specular_color
+                ks = mesh.ks
+                ke = mesh.ke
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+
+                s = Vector3.mul(i_s, phi_s)
+
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
+                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
 
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
@@ -265,13 +379,13 @@ class Renderer:
                         # barycentric coordinate checking
                         # ? What happens when there is a negative divisor
                         gammaDivisor = (((y_a - y_b) * x_c) + ((x_b - x_a) * y_c) + (x_a * y_b) - (x_b * y_a))
-                        # if gammaDivisor == 0 or gammaDivisor == math.nan:
-                        #     print("gamma bad")
+                        if gammaDivisor == 0:
+                            gammaDivisor = 0.0000001
                         gamma = (((y_a - y_b) * x) + ((x_b - x_a) * y) + (x_a * y_b) - (x_b * y_a)) / gammaDivisor
                             
                         betaDivisor = (((y_a - y_c) * x_b) + ((x_c - x_a) * y_b) + (x_a * y_c) - (x_c * y_a))
-                        # if betaDivisor == 0 or betaDivisor == math.nan:
-                        #     print("beta bad")
+                        if betaDivisor == 0:
+                            betaDivisor = 0.0000001
                         beta = (((y_a - y_c) * x) + ((x_c - x_a) * y) + (x_a * y_c) - (x_c * y_a)) / betaDivisor
 
                         alpha = 1 - beta - gamma
@@ -294,15 +408,15 @@ class Renderer:
 
                         # render the pixel
                         if shading == "flat":
-                            image_buffer[x, y] = shade_flat(ambient_light, self.light, mesh, \
+                            image_buffer[x, y] = shade_flat(self.light, ambient_light, mesh, \
                                 world_tri, normal, alpha, beta, gamma)
                         elif shading == "barycentric":
                             image_buffer[x, y] = shade_barycentric(alpha, beta, gamma)
                         elif shading == "depth":
-                            image_buffer[x, y] = shade_depth(depth) #? How do you actually normalize depth values, mine are already from -1 to 0
+                            image_buffer[x, y] = shade_depth(depth)
                         elif shading == "phong-blinn":
-                            image_buffer[x, y] = shade_phong_blinn(ambient_light, self.light, self.camera, mesh, \
-                                world_tri, world_tri_vert_normals, alpha, beta, gamma)
+                            image_buffer[x, y] = shade_phong_blinn(self.camera, self.light, ambient_light, self.shadow_map, \
+                                mesh, world_tri, world_tri_vert_normals, alpha, beta, gamma)
                         elif shading == "gouraud":
                             image_buffer[x, y] = shade_gouraud_pixel(vert_color_tri, alpha, beta, gamma)
                         elif shading == "texture":
@@ -311,8 +425,12 @@ class Renderer:
                         elif shading == "texture-correct":
                             image_buffer[x, y] = shade_texture_correct(self.camera, texture_pixels, texture_width, texture_height, uv_tri, \
                                 ndc_tri, alpha, beta, gamma)
+                        elif shading == "shadow-map":
+                            image_buffer[x, y] = shade_shadow_map(self.camera, self.shadow_map, world_tri, alpha, beta, gamma)
+                        elif shading == "stylized":
+                            image_buffer[x, y] = shade_stylized(self.camera, self.light, ambient_light, self.shadow_map, \
+                                mesh, world_tri, world_tri_vert_normals, alpha, beta, gamma)
 
             if shading == "texture" or shading == "texture-correct":
                 mesh.texture.close()
-
         self.screen.draw(image_buffer)
