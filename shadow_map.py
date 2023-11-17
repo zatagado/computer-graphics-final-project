@@ -128,17 +128,18 @@ class ShadowMap:
                             depth_buffer[x, y] = (depth + 1) / 2
             
             return depth_buffer
-            
-        #* We must scale the orthoCamera to cover the entire screen. The shadow mapper does not currently do this automatically.
-        #* We don't care about the position of the camera. Instead move the camera near plane.
-        self.orthoCamera = orthoCamera
-        # Rotate the camera the same direction the light is facing
-        self.orthoCamera.transform.set_rotation_towards(light.transform.apply_to_normal(Vector3.negate(Vector3.forward())))
-        # self.orthoCamera.transform.set_position(light.transform.get_position()) # ! The position probably doesn't matter
-        self.resolution = resolution
-        self.bias = bias
-        # Fill the depth buffer with depths from the viewpoint of the light source
-        self.depth_buffer = fill_depth_buffer(meshes, orthoCamera, resolution)
+        
+        if isinstance(light, DirectionalLight):
+            #* We must scale the orthoCamera to cover the entire screen. The shadow mapper does not currently do this automatically.
+            #* We don't care about the position of the camera. Instead move the camera near plane.
+            self.orthoCamera = orthoCamera
+            # Rotate the camera the same direction the light is facing
+            self.orthoCamera.transform.set_rotation_towards(light.transform.apply_to_normal(Vector3.negate(Vector3.forward())))
+            # self.orthoCamera.transform.set_position(light.transform.get_position()) # ! The position probably doesn't matter
+            self.resolution = resolution
+            self.bias = bias
+            # Fill the depth buffer with depths from the viewpoint of the light source
+            self.depth_buffer = fill_depth_buffer(meshes, orthoCamera, resolution)
 
     def check_occlusion(self, p): #* point must be within world space
         ndc_vert = self.orthoCamera.project_point(p) 
