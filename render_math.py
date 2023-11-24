@@ -2,9 +2,22 @@ import math
 import numpy as np
 
 class Shader:
+    # Return 1 is a is greater or equal to b, otherwise return 0
     @staticmethod
     def step(a, b):
         return 1 if a >= b else 0
+    
+    # Return a rounded down to the nearest step multiple
+    # ex. a = 0.45, steps = 0.2, return 0.4
+    # ex. a = a = 0.79, steps = 0.2, return 0.6
+    @staticmethod
+    def posterize(a, steps):
+        return (a // steps) * steps
+
+    # Return the value clamped between 0 and 1
+    @staticmethod
+    def clamp01(a):
+        return max(min(a, 1), 0)
 
 class Vector2:
     @staticmethod

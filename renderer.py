@@ -267,17 +267,25 @@ class Renderer:
                 else:
                     p_sm = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector4.mul(world_tri[1], beta), \
                         Vector3.mul(world_tri[2], gamma)))
-                in_light = shadow_map.check_occlusion(p_sm)
 
                 l = light.transform.apply_to_normal(Vector3.forward())
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
+                
+                lit = max(Vector3.dot(l, n), 0) # regular fragment lighting
+                unoccluded = shadow_map.check_occlusion(p_sm) # check if area is occluded from the light
+                rim = (1 - max(Vector3.dot(v, n), 0)) # white around the rim of the object
 
-                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * in_light, 0)), np.pi)
+                #* To add the rim light, separate the non rim and rim lit sections then add them
+                #* since they rim and non_rim are mutually exclusive it is safe to add
+                #* rim_lit: rim * lit * unoccluded * rim_color
+                #* non_rim_lit: (1 - rim) * lit * unoccluded * non_rim_color
+                #* final_color: rim_lit + non_rim_lit
+
+                phi_d = Vector3.div(Vector3.mul(o, kd * lit * unoccluded), np.pi)
                 phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
 
                 d = Vector3.mul(l_color, phi_d)
-
-                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
-                h = Vector3.normalize(Vector3.add(l, v))
 
                 i_s = mesh.specular_color
                 ks = mesh.ks
@@ -293,8 +301,20 @@ class Renderer:
                 return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
             elif isinstance(light, PointLight):
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
+                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
+                h = Vector3.normalize(Vector3.add(l, v))
 
-                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
+                light = max(Vector3.dot(l, n), 0) # regular fragment lighting
+                unoccluded = shadow_map.check_occlusion(p_sm) # check if area is occluded from the light
+                rim = (1 - max(Vector3.dot(v, n), 0)) # white around the rim of the object
+
+                #* To add the rim light, separate the non rim and rim lit sections then add them
+                #* since they rim and non_rim are mutually exclusive it is safe to add
+                #* rim_lit: rim * lit * unoccluded * rim_color
+                #* non_rim_lit: (1 - rim) * lit * unoccluded * non_rim_color
+                #* final_color: rim_lit + non_rim_lit
+
+                phi_d = Vector3.div(Vector3.mul(o, kd * lit), np.pi)
                 phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
 
                 l_intensity = light.intensity
@@ -302,10 +322,6 @@ class Renderer:
                 id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
                 
                 d = Vector3.mul(id, phi_d)
-
-                # camera transform get position - p norm
-                v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
-                h = Vector3.normalize(Vector3.add(l, v))
 
                 i_s = mesh.specular_color
                 ks = mesh.ks
