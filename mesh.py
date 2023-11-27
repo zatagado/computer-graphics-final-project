@@ -1,4 +1,7 @@
 import stl
+import pywavefront
+import pywavefront.mesh
+import pywavefront.material
 import math
 import numpy as np
 from render_math import Vector3
@@ -102,6 +105,89 @@ class Mesh:
 
         return new_mesh
     
+    def from_obj(obj_path, diffuse_color, specular_color, ka, kd, ks, ke):
+        meshes_data = pywavefront.Wavefront(obj_path, strict=False, create_materials=True, collect_faces=True)
+
+        mesh_data: pywavefront.mesh.Mesh = meshes_data.mesh_list[0]
+        # print(mesh_data.faces)
+        material_data: pywavefront.material.Material = mesh_data.materials[0]
+        # print(material_data.vertex_size)
+        # print(material_data.vertices)
+        # print(len(material_data.vertices) / 8)
+        # TODO return a list of meshes
+        uvs = []
+        og_n = []
+        verts = []
+        faces = mesh_data.faces
+        for v in range(int(len(material_data.vertices) / 8)):
+            i = v * 8
+            uvs.append([material_data.vertices[i], material_data.vertices[i + 1]])
+            og_n.append([material_data.vertices[i + 2], material_data.vertices[i + 3], material_data.vertices[i + 4]])
+            verts.append([material_data.vertices[i + 5], material_data.vertices[i + 6], material_data.vertices[i + 7]])
+
+        
+        # ! START OF OLD CODE
+        stl = Mesh.from_stl('unit_cube.stl', diffuse_color, specular_color, ka, kd, ks, ke)
+
+        new_mesh = Mesh(diffuse_color, specular_color, ka, kd, ks, ke)
+        new_mesh.faces = faces
+        new_mesh.uvs = uvs
+        new_mesh.verts = verts
+
+        for i in range(len(new_mesh.faces)):
+            # print(mesh_data.faces[i])
+            a = Vector3.sub(new_mesh.verts[new_mesh.faces[i][1]], new_mesh.verts[new_mesh.faces[i][0]])
+            b = Vector3.sub(new_mesh.verts[new_mesh.faces[i][2]], new_mesh.verts[new_mesh.faces[i][0]])
+            # a = Vector3.sub(new_mesh.verts[new_mesh.faces[i][0]], new_mesh.verts[new_mesh.faces[i][2]])
+            # b = Vector3.sub(new_mesh.verts[new_mesh.faces[i][1]], new_mesh.verts[new_mesh.faces[i][2]])
+            new_mesh.normals.append(Vector3.normalize(Vector3.cross(a, b))) #* normalization could cause future issues
+            # print(f'old {og_n[i]} new {new_mesh.normals[i]}')
+
+        tri_for_verts = []
+        for i in range(len(new_mesh.verts)):
+            tri_for_verts.append([])
+
+        for i in range(len(new_mesh.faces)):
+            for j in range(len(new_mesh.faces[i])):
+                # append that normal to each vertex in the face
+                tri_for_verts[new_mesh.faces[i][j]].append(new_mesh.normals[i])
+
+        new_mesh.vert_normals = [None] * len(new_mesh.verts)
+        for i in range(len(tri_for_verts)):
+            sum = np.array([0, 0, 0], dtype=float)
+            for j in range(len(tri_for_verts[i])):
+                sum = Vector3.add(sum, tri_for_verts[i][j])
+            new_mesh.vert_normals[i] = Vector3.normalize(sum)
+        
+        new_mesh.calculate_bounding_box()
+
+        new_mesh.diffuse_color = diffuse_color
+        new_mesh.specular_color = specular_color
+        new_mesh.ka = ka
+        new_mesh.kd = kd
+        new_mesh.ks = ks
+        new_mesh.ke = ke
+
+        # print(new_mesh.faces)
+        # print('')
+        # for i in range(len(new_mesh.faces)):
+        #     print(f'({new_mesh.verts[new_mesh.faces[i][0]]}, {new_mesh.verts[new_mesh.faces[i][1]]}, {new_mesh.verts[new_mesh.faces[i][2]]})')
+
+        # print(material_data.vertices)
+
+        for i in range(int(len(material_data.vertices) / material_data.vertex_size)):
+            j = i * 8
+            print(f'{material_data.vertices[j + 2]} {material_data.vertices[j + 3]} {material_data.vertices[j + 4]} | {material_data.vertices[j + 5]} {material_data.vertices[j + 6]} {material_data.vertices[j + 7]}')
+        
+        print(new_mesh.faces)
+
+        for j in range(len(new_mesh.faces)):
+            # print(new_mesh.faces[j])
+            # print(f'{new_mesh.ver} {} {}')
+            pass
+
+        return new_mesh
+
     def load_texture(self, img_path):
         self.texture = Image.open(img_path, "r")
 
@@ -114,7 +200,7 @@ class Mesh:
             z = v[2]
 
             theta = np.arctan2(y,x)
-            phi   = np.arctan2(z,np.sqrt(x**2 + y**2))
+            phi = np.arctan2(z,np.sqrt(x**2 + y**2))
             return np.array([theta, phi])
         
         uvs = []
