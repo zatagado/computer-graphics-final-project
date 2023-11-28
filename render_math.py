@@ -105,6 +105,10 @@ class Vector3:
             return np.array([a[0] * b[0], a[1] * b[1], a[2] * b[2]])
         else:
             raise Exception('b was not correct type.')
+
+    @staticmethod
+    def clamp(a: np.ndarray, min, max):
+        return np.clip(a, min, max)
     
     @staticmethod
     def div(a: np.ndarray, b: float):

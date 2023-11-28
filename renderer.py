@@ -78,8 +78,7 @@ class Renderer:
 
             o = mesh.diffuse_color
             kd = mesh.kd
-            phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
-            phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])])
+            phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi), None, 1)
 
 
             l_color = light.color
@@ -90,8 +89,7 @@ class Renderer:
             d = Vector3.mul(id, phi_d)
             a = Vector3.mul(ambient_light, mesh.ka)
 
-            final = Vector3.mul(Vector3.add(a, d), 255)
-            return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+            return Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
 
         def shade_barycentric(alpha, beta, gamma):
             return (255 * alpha, 255 * beta, 255 * gamma)
@@ -126,8 +124,7 @@ class Renderer:
 
                 l = light.transform.apply_to_normal(Vector3.forward())
 
-                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * in_light, 0)), np.pi)
-                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+                phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * in_light, 0)), np.pi), None, 1)
 
                 d = Vector3.mul(l_color, phi_d)
 
@@ -144,13 +141,11 @@ class Renderer:
 
                 a = Vector3.mul(ambient_light, mesh.ka)
 
-                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
-                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+                return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
             elif isinstance(light, PointLight):
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
 
-                phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
-                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+                phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi), None, 1)
 
                 l_intensity = light.intensity
                 l_distance = Vector3.dist(light.transform.get_position(), p)
@@ -171,8 +166,7 @@ class Renderer:
 
                 a = Vector3.mul(ambient_light, mesh.ka)
 
-                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
-                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+                return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
 
         def shade_gouraud_vertex(vertex_colors, face, ambient_light, light, camera, mesh, world_tri, world_tri_vert_normals):
             for i in range(3):
@@ -183,8 +177,7 @@ class Renderer:
 
                     o = mesh.diffuse_color
                     kd = mesh.kd
-                    phi_d = Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi)
-                    phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+                    phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi), None, 1)
 
                     l_color = light.color
                     l_intensity = light.intensity
@@ -282,8 +275,7 @@ class Renderer:
                 #* non_rim_lit: (1 - rim) * lit * unoccluded * non_rim_color
                 #* final_color: rim_lit + non_rim_lit
 
-                phi_d = Vector3.div(Vector3.mul(o, kd * lit * unoccluded), np.pi)
-                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+                phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit * unoccluded), np.pi), None, 1)
 
                 d = Vector3.mul(l_color, phi_d)
 
@@ -297,8 +289,7 @@ class Renderer:
 
                 a = Vector3.mul(ambient_light, mesh.ka)
 
-                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
-                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+                return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
             elif isinstance(light, PointLight):
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
                 v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
@@ -314,8 +305,7 @@ class Renderer:
                 #* non_rim_lit: (1 - rim) * lit * unoccluded * non_rim_color
                 #* final_color: rim_lit + non_rim_lit
 
-                phi_d = Vector3.div(Vector3.mul(o, kd * lit), np.pi)
-                phi_d = np.array([min(1, phi_d[0]), min(1, phi_d[1]), min(1, phi_d[2])], dtype=float)
+                phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit), np.pi), None, 255)
 
                 l_intensity = light.intensity
                 l_distance = Vector3.dist(light.transform.get_position(), p)
@@ -332,8 +322,7 @@ class Renderer:
 
                 a = Vector3.mul(ambient_light, mesh.ka)
 
-                final = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
-                return (min(255, final[0]), min(255, final[1]), min(255, final[2]))
+                return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
 
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
