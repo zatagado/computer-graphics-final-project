@@ -347,8 +347,10 @@ class Renderer:
                 world_verts = [mesh.transform.apply_to_point(p) for p in mesh.verts]
                 ndc_verts = [self.camera.project_point(p) for p in world_verts]
                 screen_verts = [self.screen.device_to_screen(p) for p in ndc_verts]
-                
-                vertex_colors = [None] * len(mesh.verts) if shading == "gouraud" else None
+
+                vertex_colors = None
+                if shading == "gouraud":
+                    vertex_colors = [None] * len(mesh.verts)
 
                 texture_pixels = None
                 texture_width = None

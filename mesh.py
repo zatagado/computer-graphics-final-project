@@ -265,6 +265,6 @@ class Mesh:
         new_mesh.vert_normals = [Vector3.copy(self.vert_normals[a]) for a in range(len(self.vert_normals))]
         new_mesh.uvs = [Vector2.copy(self.uvs[a]) for a in range(len(self.uvs))]
         new_mesh.texture = self.texture
-        new_mesh.transform = self.transform
+        new_mesh.transform.model_matrix = np.copy(self.transform.model_matrix)
         new_mesh.bounding_box_min = np.copy(self.bounding_box_min)
         new_mesh.bounding_box_max = np.copy(self.bounding_box_max)
