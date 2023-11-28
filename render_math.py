@@ -45,6 +45,9 @@ class Vector2:
     def to_Vector3(a: np.ndarray):
         # return np.append(a, 1)
         return np.array([a[0], a[1], 1], dtype=float)
+    
+    def copy(a: np.ndarray):
+        return np.copy(a)
 
 class Vector3:
     @staticmethod
@@ -139,6 +142,9 @@ class Vector3:
     def to_Vector4(a: np.ndarray):
         # return np.append(a, 1)
         return np.array([a[0], a[1], a[2], 1], dtype=float)
+    
+    def copy(a: np.ndarray):
+        return np.copy(a)
 
 class Vector4:
     @staticmethod

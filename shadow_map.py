@@ -81,7 +81,7 @@ class ShadowMap:
                     # TODO for presentation compare regular vs flipped normals in presentation
                     # if cross[2] < 0: #! Regular normals
                     #     continue
-                    if cross[2] > 0: #! Flipped normals
+                    if cross[2] >= 0: #! Flipped normals
                         continue
 
                     # get pixel bounds for which areas of pixels should be drawn
