@@ -456,9 +456,10 @@ class Renderer:
                     mesh.texture.close()
 
         def invert_hull(meshes):
-            inverted_hull_meshes = []
+            # TODO implementation of modified mesh for outlines
+            inverted_hull_meshes = [meshes[a].deep_copy() for a in range(len(self.meshes))]
             return inverted_hull_meshes
 
-        render_pass(image_buffer, depth_buffer, invert_hull(self.meshes), "outline")
+        # render_pass(image_buffer, depth_buffer, invert_hull(self.meshes), "outline")
         render_pass(image_buffer, depth_buffer, self.meshes, shading)
         self.screen.draw(image_buffer)

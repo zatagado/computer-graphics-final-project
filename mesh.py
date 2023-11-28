@@ -4,7 +4,7 @@ import pywavefront.mesh
 import pywavefront.material
 import math
 import numpy as np
-from render_math import Vector3
+from render_math import Vector2, Vector3
 from transform import Transform
 from PIL import Image
 
@@ -256,3 +256,15 @@ class Mesh:
             np.array([0.0, 1.0]), np.array([1.0, 1.0])]
 
         return mesh
+    
+    def deep_copy(self):
+        new_mesh = Mesh(self.diffuse_color, self.specular_color, self.ka, self.kd, self.ks, self.ke)
+        new_mesh.verts = [Vector3.copy(self.verts[a]) for a in range(len(self.verts))]
+        new_mesh.faces = [Vector3.copy(self.faces[a]) for a in range(len(self.faces))]
+        new_mesh.normals = [Vector3.copy(self.normals[a]) for a in range(len(self.normals))]
+        new_mesh.vert_normals = [Vector3.copy(self.vert_normals[a]) for a in range(len(self.vert_normals))]
+        new_mesh.uvs = [Vector2.copy(self.uvs[a]) for a in range(len(self.uvs))]
+        new_mesh.texture = self.texture
+        new_mesh.transform = self.transform
+        new_mesh.bounding_box_min = np.copy(self.bounding_box_min)
+        new_mesh.bounding_box_max = np.copy(self.bounding_box_max)

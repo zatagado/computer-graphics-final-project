@@ -35,7 +35,7 @@ if __name__ == '__main__':
     light = DirectionalLight(np.array([1, 1, 1]))
     light.transform.set_rotation_towards([-0.7, -0.1, -1])
 
-    shadow_map = ShadowMap([mesh_1, mesh_2, mesh_3, mesh_4], light, OrthoCamera(7, -7, -7, 7, 5.0, -20), (screen.width, screen.height), 0.1)
+    shadow_map = ShadowMap([mesh_1, mesh_2, mesh_3, mesh_4], light, OrthoCamera(7, -7, -7, 7, 5.0, -20), (screen.width, screen.height), 0.0)
     
     #* Grouping for rendering from camera pov
     renderer = Renderer(screen, camera, [mesh_1, mesh_2, mesh_3, mesh_4], light, shadow_map)
