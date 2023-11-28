@@ -78,7 +78,10 @@ class ShadowMap:
                     # cull triangle if normal is facing away from camera
                     cross = Vector3.cross(Vector3.normalize(Vector3.sub(ndc_tri[1], ndc_tri[0])), \
                         Vector3.normalize(Vector3.sub(ndc_tri[2], ndc_tri[0])))
-                    if cross[2] < 0: # TODO maybe eventually flip the normals
+                    # TODO for presentation compare regular vs flipped normals in presentation
+                    # if cross[2] < 0: #! Regular normals
+                    #     continue
+                    if cross[2] > 0: #! Flipped normals
                         continue
 
                     # get pixel bounds for which areas of pixels should be drawn
