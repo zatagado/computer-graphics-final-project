@@ -6,6 +6,17 @@ from camera import PerspectiveCamera
 import numpy as np
 import math
 
+# Quantize a color to a more limited palette
+def quantize_color(target: np.ndarray):
+    bucket_count = 5
+    return 255 / (bucket_count - 1) * (target * bucket_count // 256)
+
+# Not sure what to call this, but it distorts colors in an interesting way.
+# The brighter a color, the more it will be distorted.
+def skew_color(target: np.ndarray, amount):
+    s = (target[0] + target[1] + target[2]) / (255 * 3) * amount
+    return np.array([target[2] * s + target[0] * (1 - s), target[0] * s + target[1] * (1 - s), target[1] * s + target[2] * (1 - s)])
+
 class Renderer:
     def __init__(self, screen: Screen, camera, meshes: list, light, shadow_map):
         self.screen = screen
@@ -287,9 +298,10 @@ class Renderer:
 
                 s = Vector3.mul(i_s, phi_s)
 
-                a = Vector3.mul(ambient_light, mesh.ka)
+                a = Vector3.mul(Vector3.mul(ambient_light, mesh.ka), o)
 
-                return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
+                target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
+                return skew_color(quantize_color(target), 1)
             elif isinstance(light, PointLight):
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
                 v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
@@ -320,9 +332,10 @@ class Renderer:
 
                 s = Vector3.mul(i_s, phi_s)
 
-                a = Vector3.mul(ambient_light, mesh.ka)
+                a = Vector3.mul(Vector3.mul(ambient_light, mesh.ka), o)
 
-                return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
+                target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
+                return skew_color(quantize_color(target), 1)
 
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
