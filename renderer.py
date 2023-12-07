@@ -246,8 +246,8 @@ class Renderer:
             else:
                 p = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector4.mul(world_tri[1], beta), \
                     Vector3.mul(world_tri[2], gamma)))
-            in_light = shadow_map.check_occlusion(p)
-            return (255 * in_light, 255 * in_light, 255 * in_light)
+            unoccluded = shadow_map.check_occlusion(p)
+            return (255 * unoccluded, 255 * unoccluded, 255 * unoccluded)
 
         def shade_stylized(camera, light, ambient_light, shadow_map, mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma):
             o = mesh.diffuse_color
@@ -294,7 +294,7 @@ class Renderer:
                 ks = mesh.ks
                 ke = mesh.ke
 
-                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke) * unoccluded
 
                 s = Vector3.mul(i_s, phi_s)
 
@@ -302,13 +302,12 @@ class Renderer:
 
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
                 return skew_color(quantize_color(target), 1)
-            elif isinstance(light, PointLight):
+            elif isinstance(light, PointLight): #* No shadow maps for point light
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
                 v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
                 h = Vector3.normalize(Vector3.add(l, v))
 
                 light = max(Vector3.dot(l, n), 0) # regular fragment lighting
-                unoccluded = shadow_map.check_occlusion(p_sm) # check if area is occluded from the light
                 rim = (1 - max(Vector3.dot(v, n), 0)) # white around the rim of the object
 
                 #* To add the rim light, separate the non rim and rim lit sections then add them
