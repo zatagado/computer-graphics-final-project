@@ -336,6 +336,9 @@ class Renderer:
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
                 return skew_color(quantize_color(target), 1)
 
+        def shade_outline(outline_color):
+            return Vector3.mul(outline_color, 255)
+
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
 
@@ -451,16 +454,39 @@ class Renderer:
                                 image_buffer[x, y] = shade_stylized(self.camera, self.light, ambient_light, self.shadow_map, \
                                     mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma)
                             elif shading == "outline":
-                                image_buffer
+                                image_buffer[x, y] = shade_outline(self.outline_color)
 
                 if shading == "texture" or shading == "texture-correct":
                     mesh.texture.close()
 
-        def invert_hull(meshes):
-            # TODO implementation of modified mesh for outlines
-            inverted_hull_meshes = [meshes[a].deep_copy() for a in range(len(self.meshes))]
+        #! add a constant outline
+        def invert_hull(meshes, outline_size):
+            inverted_hull_meshes = []
+            for i in range(len(self.meshes)):
+                mesh = meshes[i]
+                inverted_hull_mesh = mesh.deep_copy()
+                
+                # move the vertex according to vertex normals
+                for j in range(len(inverted_hull_mesh.verts)):
+                    inverted_hull_mesh.verts[j] = Vector3.add(inverted_hull_mesh.verts[j], Vector3.mul(inverted_hull_mesh.vert_normals[j], outline_size))
+                # reverse vertex face order
+                for j in range(len(inverted_hull_mesh.faces)):
+                    inverted_hull_mesh.faces[j] = [inverted_hull_mesh.faces[j][2], inverted_hull_mesh.faces[j][1], inverted_hull_mesh.faces[j][0]]
+                # calculate the normal
+                for j in range(len(inverted_hull_mesh.normals)):
+                    a = Vector3.sub(inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][1]], inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][0]])
+                    b = Vector3.sub(inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][2]], inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][0]])
+                    inverted_hull_mesh.normals[j] = Vector3.normalize(Vector3.cross(a, b)) #* normalization could cause future issues
+                # calculate the new vertex normals
+                inverted_hull_mesh.calculate_vert_normals()
+
+                inverted_hull_meshes.append(inverted_hull_mesh)
+
             return inverted_hull_meshes
 
-        # render_pass(image_buffer, depth_buffer, invert_hull(self.meshes), "outline")
+        self.outline_size = 0.03
+        self.outline_color = np.array([0, 0, 0])
+
+        render_pass(image_buffer, depth_buffer, invert_hull(self.meshes, self.outline_size), "outline")
         render_pass(image_buffer, depth_buffer, self.meshes, shading)
         self.screen.draw(image_buffer)
