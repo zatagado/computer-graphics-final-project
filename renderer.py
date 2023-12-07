@@ -18,14 +18,13 @@ def skew_color(target: np.ndarray, amount):
     return np.array([target[2] * s + target[0] * (1 - s), target[0] * s + target[1] * (1 - s), target[1] * s + target[2] * (1 - s)])
 
 class Renderer:
-    def __init__(self, screen: Screen, camera, meshes: list, light, shadow_map):
+    def __init__(self, screen: Screen, camera, light, shadow_map):
         self.screen = screen
         self.camera = camera
-        self.meshes = meshes
         self.light = light
         self.shadow_map = shadow_map
 
-    def render(self, shading, bg_color, ambient_light):
+    def render(self, passes, bg_color, ambient_light):
         def get_pixel_bounds(screen_coords_verts, screen_width, screen_height):
             bounding_rect_min = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             bounding_rect_max = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
@@ -246,8 +245,8 @@ class Renderer:
             else:
                 p = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector4.mul(world_tri[1], beta), \
                     Vector3.mul(world_tri[2], gamma)))
-            in_light = shadow_map.check_occlusion(p)
-            return (255 * in_light, 255 * in_light, 255 * in_light)
+            unoccluded = shadow_map.check_occlusion(p)
+            return (255 * unoccluded, 255 * unoccluded, 255 * unoccluded)
 
         def shade_stylized(camera, light, ambient_light, shadow_map, mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma):
             o = mesh.diffuse_color
@@ -294,7 +293,7 @@ class Renderer:
                 ks = mesh.ks
                 ke = mesh.ke
 
-                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke) * unoccluded
 
                 s = Vector3.mul(i_s, phi_s)
 
@@ -302,13 +301,12 @@ class Renderer:
 
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
                 return skew_color(quantize_color(target), 1)
-            elif isinstance(light, PointLight):
+            elif isinstance(light, PointLight): #* No shadow maps for point light
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
                 v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
                 h = Vector3.normalize(Vector3.add(l, v))
 
                 light = max(Vector3.dot(l, n), 0) # regular fragment lighting
-                unoccluded = shadow_map.check_occlusion(p_sm) # check if area is occluded from the light
                 rim = (1 - max(Vector3.dot(v, n), 0)) # white around the rim of the object
 
                 #* To add the rim light, separate the non rim and rim lit sections then add them
@@ -337,25 +335,28 @@ class Renderer:
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
                 return skew_color(quantize_color(target), 1)
 
+        def shade_outline(mesh):
+            return Vector3.mul(mesh.diffuse_color, 255)
+
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
 
-        def render_pass(image_buffer, depth_buffer, meshes, shading):
-            for i in range(len(meshes)):
-                mesh: Mesh = meshes[i]
+        def render_pass(image_buffer, depth_buffer, rpass):
+            for i in range(len(rpass.meshes)):
+                mesh: Mesh = rpass.meshes[i]
 
                 world_verts = [mesh.transform.apply_to_point(p) for p in mesh.verts]
                 ndc_verts = [self.camera.project_point(p) for p in world_verts]
                 screen_verts = [self.screen.device_to_screen(p) for p in ndc_verts]
 
                 vertex_colors = None
-                if shading == "gouraud":
+                if rpass.shading == "gouraud":
                     vertex_colors = [None] * len(mesh.verts)
 
                 texture_pixels = None
                 texture_width = None
                 texture_height = None
-                if shading == "texture" or shading == "texture-correct":
+                if rpass.shading == "texture" or rpass.shading == "texture-correct":
                     texture_pixels = mesh.texture.load()
                     texture_width = mesh.texture.width
                     texture_height = mesh.texture.height
@@ -390,7 +391,7 @@ class Renderer:
                     y_c = screen_tri[2][1]
 
                     vert_color_tri = None
-                    if shading == "gouraud":
+                    if rpass.shading == "gouraud":
                         shade_gouraud_vertex(vertex_colors, face, ambient_light, self.light, self.camera, mesh, \
                             world_tri, world_tri_vert_normals) # face index
                         vert_color_tri = [vertex_colors[face[0]], vertex_colors[face[1]], vertex_colors[face[2]]]
@@ -428,40 +429,81 @@ class Renderer:
                             depth_buffer[x, y] = (depth + 1) / 2
 
                             # render the pixel
-                            if shading == "flat":
+                            if rpass.shading == "flat":
                                 image_buffer[x, y] = shade_flat(self.light, ambient_light, mesh, \
                                     world_tri, normal, alpha, beta, gamma)
-                            elif shading == "barycentric":
+                            elif rpass.shading == "barycentric":
                                 image_buffer[x, y] = shade_barycentric(alpha, beta, gamma)
-                            elif shading == "depth":
+                            elif rpass.shading == "depth":
                                 image_buffer[x, y] = shade_depth(depth)
-                            elif shading == "phong-blinn":
+                            elif rpass.shading == "phong-blinn":
                                 image_buffer[x, y] = shade_phong_blinn(self.camera, self.light, ambient_light, self.shadow_map, \
                                     mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma)
-                            elif shading == "gouraud":
+                            elif rpass.shading == "gouraud":
                                 image_buffer[x, y] = shade_gouraud_pixel(vert_color_tri, alpha, beta, gamma)
-                            elif shading == "texture":
+                            elif rpass.shading == "texture":
                                 image_buffer[x, y] = shade_texture(texture_pixels, texture_width, texture_height, uv_tri, \
                                     alpha, beta, gamma)
-                            elif shading == "texture-correct":
+                            elif rpass.shading == "texture-correct":
                                 image_buffer[x, y] = shade_texture_correct(self.camera, texture_pixels, texture_width, texture_height, uv_tri, \
                                     ndc_tri, alpha, beta, gamma)
-                            elif shading == "shadow-map":
+                            elif rpass.shading == "shadow-map":
                                 image_buffer[x, y] = shade_shadow_map(self.camera, self.shadow_map, ndc_tri, world_tri, alpha, beta, gamma)
-                            elif shading == "stylized":
+                            elif rpass.shading == "stylized":
                                 image_buffer[x, y] = shade_stylized(self.camera, self.light, ambient_light, self.shadow_map, \
                                     mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma)
-                            elif shading == "outline":
-                                image_buffer
+                            elif rpass.shading == "outline":
+                                image_buffer[x, y] = shade_outline(mesh)
 
-                if shading == "texture" or shading == "texture-correct":
+                if rpass.shading == "texture" or rpass.shading == "texture-correct":
                     mesh.texture.close()
-
-        def invert_hull(meshes):
-            # TODO implementation of modified mesh for outlines
-            inverted_hull_meshes = [meshes[a].deep_copy() for a in range(len(self.meshes))]
-            return inverted_hull_meshes
-
-        # render_pass(image_buffer, depth_buffer, invert_hull(self.meshes), "outline")
-        render_pass(image_buffer, depth_buffer, self.meshes, shading)
+                    
+        if not isinstance(passes, list):
+            passes = [passes]
+        for i in range(len(passes)):
+            render_pass(image_buffer, depth_buffer, passes[i])
         self.screen.draw(image_buffer)
+
+# Passes are created inside the run_stylized.py and other run scripts
+class Pass:
+    def __init__(self, meshes, shading):
+        self.meshes = meshes
+        self.shading = shading
+
+# TODO whatever needs to be in this
+# TODO use OutlinePass as reference
+class StylizedPass(Pass):
+    # TODO can pass data from StylizedPass to shade_stylized using rpass.something_important inside render_pass function 
+    def __init__(self, meshes):
+        super().__init__(meshes, "stylized")
+
+class OutlinePass(Pass):
+    def __init__(self, meshes, mesh_outline_colors, mesh_outline_sizes):
+        def invert_hull(meshes, mesh_outline_sizes):
+            inverted_hull_meshes = []
+            for i in range(len(meshes)):
+                mesh = meshes[i]
+                inverted_hull_mesh = mesh.deep_copy()
+                
+                # move the vertex according to vertex normals
+                for j in range(len(inverted_hull_mesh.verts)):
+                    inverted_hull_mesh.verts[j] = Vector3.add(inverted_hull_mesh.verts[j], Vector3.mul(inverted_hull_mesh.vert_normals[j], mesh_outline_sizes[i]))
+                # reverse vertex face order
+                for j in range(len(inverted_hull_mesh.faces)):
+                    inverted_hull_mesh.faces[j] = [inverted_hull_mesh.faces[j][2], inverted_hull_mesh.faces[j][1], inverted_hull_mesh.faces[j][0]]
+                # calculate the normal
+                for j in range(len(inverted_hull_mesh.normals)):
+                    a = Vector3.sub(inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][1]], inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][0]])
+                    b = Vector3.sub(inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][2]], inverted_hull_mesh.verts[inverted_hull_mesh.faces[j][0]])
+                    inverted_hull_mesh.normals[j] = Vector3.normalize(Vector3.cross(a, b))
+                # calculate the new vertex normals
+                inverted_hull_mesh.calculate_vert_normals()
+
+                inverted_hull_meshes.append(inverted_hull_mesh)
+
+            return inverted_hull_meshes
+        
+        inverted_hull_meshes = invert_hull(meshes, mesh_outline_sizes)
+        for i in range(len(mesh_outline_colors)):
+            inverted_hull_meshes[i].diffuse_color = mesh_outline_colors[i]
+        super().__init__(inverted_hull_meshes, "outline")

@@ -3,7 +3,7 @@ import numpy as np
 from screen import Screen
 from camera import PerspectiveCamera,OrthoCamera
 from mesh import Mesh
-from renderer import Renderer
+from renderer import Renderer, Pass
 from light import PointLight, DirectionalLight
 from shadow_map import ShadowMap
 from render_math import Vector3
@@ -27,10 +27,10 @@ if __name__ == '__main__':
     light = DirectionalLight(np.array([1, 1, 1]))
     light.transform.set_rotation_towards(Vector3.normalize([1, 1, -1]))
 
-    shadow_map = ShadowMap([mesh_1, mesh_2], light, OrthoCamera(7, -7, -7, 7, 5.0, -20), (screen.width, screen.height), 0.1) # TODO changing
+    shadow_map = ShadowMap([mesh_1, mesh_2], light, OrthoCamera(7, -7, -7, 7, 5.0, -20), (screen.width, screen.height), 0.1) 
 
     #* Grouping for rendering from camera pov
-    renderer = Renderer(screen, camera, [mesh_1, mesh_2], light, shadow_map)
-    renderer.render("shadow-map", [80, 80, 80], [0.2, 0.2, 0.2]) # TODO find out the issue with the ambient light when color is changed
+    renderer = Renderer(screen, camera, light, shadow_map)
+    renderer.render(Pass([mesh_1, mesh_2], "shadow-map"), [80, 80, 80], [0.2, 0.2, 0.2]) 
 
     screen.show()
