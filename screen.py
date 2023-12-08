@@ -2,8 +2,6 @@
 # environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import pygame
-import board
-import neopixel
 from numpy import ndarray, fliplr
 from render_math import Vector3
 
@@ -50,22 +48,3 @@ class Screen:
         p_screen[0] = (p_screen[0] + 1) * (self.width / 2)
         p_screen[1] = (p_screen[1] + 1) * (self.height / 2)
         return p_screen
-
-class LEDMatrix(Screen):
-    def __init__(self, brightness):
-        self.brightness = brightness
-        super().__init__(16, 16)
-
-    def show(self):
-        pixel_pin = board.D18
-        num_pixels = self.width * self.height
-        ORDER = neopixel.GRB
-        pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=self.brightness, auto_write=False, pixel_order=ORDER)
-
-        for i in range(num_pixels):
-            row = i // self.height
-            column = (self.width - 1 - (i % self.width)) if (i // self.width) % 2 == 1 else (i % self.width)
-            pixels[i] = self.buffer[row, column]
-
-        pixels.show()
-        super().show()
