@@ -59,8 +59,17 @@ class LEDMatrix(Screen):
         pixel_pin = board.D18
         num_pixels = self.width * self.height
         ORDER = neopixel.GRB
-        pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=0.1, auto_write=False, pixel_order=ORDER)
-        for i in range(len(num_pixels)):
-            pixels[i] = (255, 255, 255)
+        pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=0.5, auto_write=False, pixel_order=ORDER)
+        # for i in range(num_pixels):
+        #     pixels[i] = self.buffer[i // self.height, i // self.width]
+        #! row 0 goes from right to left
+        #! row 1 goes from left to right
+        for i in range(num_pixels):
+            row = i // 16
+            column = (i % 16) if (i // 16) % 2 == 1 else 16 - 1 - (i % 16)
+                
+            # pixels[i] = (255, 255, 255)
+            pixels[i] = self.buffer[row, column]
+        print('pixels')
         pixels.show()
         super().show()
