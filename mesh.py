@@ -1,7 +1,4 @@
 import stl
-import pywavefront
-import pywavefront.mesh
-import pywavefront.material
 import math
 import numpy as np
 from render_math import Vector2, Vector3
