@@ -1,6 +1,6 @@
 import numpy as np
 
-from screen import Screen
+from screen import Screen, LEDMatrix
 from camera import PerspectiveCamera,OrthoCamera
 from mesh import Mesh
 from renderer import Renderer, Pass
@@ -9,7 +9,7 @@ from shadow_map import ShadowMap
 from render_math import Vector3
 
 if __name__ == '__main__':
-    screen = Screen(500,500)
+    screen = LEDMatrix()
 
     camera = PerspectiveCamera(1.0, -1.0, -1.0, 1.0, -1.0, -20)
     camera.transform.set_position(0, 8, 1)
