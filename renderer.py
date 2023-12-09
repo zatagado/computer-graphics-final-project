@@ -18,7 +18,7 @@ def skew_color(target: np.ndarray, amount):
     return np.array([target[2] * s + target[0] * (1 - s), target[0] * s + target[1] * (1 - s), target[1] * s + target[2] * (1 - s)])
 
 class Renderer:
-    def __init__(self, screen: Screen, camera, light, shadow_map):
+    def __init__(self, screen: Screen, camera, light, shadow_map=None):
         self.screen = screen
         self.camera = camera
         self.light = light
@@ -90,16 +90,21 @@ class Renderer:
             kd = mesh.kd
             phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi), None, 1)
 
-
             l_color = light.color
-            l_intensity = light.intensity
-            l_distance = Vector3.dist(light.transform.get_position(), p)
-            id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
-            
-            d = Vector3.mul(id, phi_d)
-            a = Vector3.mul(ambient_light, mesh.ka)
+            if isinstance(light, DirectionalLight):
+                id = l_color
+                d = Vector3.mul(id, phi_d)
+                a = Vector3.mul(ambient_light, mesh.ka)
 
-            return Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
+                return Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
+            elif isinstance(light, PointLight):
+                l_distance = Vector3.dist(light.transform.get_position(), p)
+                l_intensity = light.intensity
+                id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
+                d = Vector3.mul(id, phi_d)
+                a = Vector3.mul(ambient_light, mesh.ka)
+
+                return Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
 
         def shade_barycentric(alpha, beta, gamma):
             return (255 * alpha, 255 * beta, 255 * gamma)
@@ -130,11 +135,11 @@ class Renderer:
                 else:
                     p_sm = Vector3.add(Vector3.mul(world_tri[0], alpha), Vector3.add(Vector3.mul(world_tri[1], beta), \
                         Vector3.mul(world_tri[2], gamma)))
-                in_light = shadow_map.check_occlusion(p_sm)
+                unoccluded = shadow_map.check_occlusion(p_sm) if shadow_map is not None else 1
 
                 l = light.transform.apply_to_normal(Vector3.forward())
 
-                phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * in_light, 0)), np.pi), None, 1)
+                phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n) * unoccluded, 0)), np.pi), None, 1)
 
                 d = Vector3.mul(l_color, phi_d)
 
@@ -145,7 +150,7 @@ class Renderer:
                 ks = mesh.ks
                 ke = mesh.ke
 
-                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke)
+                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke) * unoccluded
 
                 s = Vector3.mul(i_s, phi_s)
 
@@ -190,9 +195,13 @@ class Renderer:
                     phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * max(Vector3.dot(l, n), 0)), np.pi), None, 1)
 
                     l_color = light.color
-                    l_intensity = light.intensity
-                    l_distance = Vector3.dist(light.transform.get_position(), p)
-                    id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
+                    id = None
+                    if isinstance(light, DirectionalLight):
+                        id = l_color
+                    elif isinstance(light, PointLight):
+                        l_intensity = light.intensity
+                        l_distance = Vector3.dist(light.transform.get_position(), p)
+                        id = Vector3.div(Vector3.mul(l_color, l_intensity), (l_distance * l_distance))
                     
                     d = Vector3.mul(id, phi_d)
 
@@ -276,7 +285,7 @@ class Renderer:
                 h = Vector3.normalize(Vector3.add(l, v))
                 
                 lit = max(Vector3.dot(l, n), 0) # regular fragment lighting
-                unoccluded = shadow_map.check_occlusion(p_sm) # check if area is occluded from the light
+                unoccluded = shadow_map.check_occlusion(p_sm) if shadow_map is not None else 1 # check if area is occluded from the light
                 rim = (1 - max(Vector3.dot(v, n), 0)) # white around the rim of the object
 
                 #* To add the rim light, separate the non rim and rim lit sections then add them

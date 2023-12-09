@@ -91,22 +91,6 @@ class Mesh:
             a = Vector3.sub(new_mesh.verts[new_mesh.faces[i][1]], new_mesh.verts[new_mesh.faces[i][0]])
             b = Vector3.sub(new_mesh.verts[new_mesh.faces[i][2]], new_mesh.verts[new_mesh.faces[i][0]])
             new_mesh.normals.append(Vector3.normalize(Vector3.cross(a, b))) #* normalization could cause future issues
-
-        # tri_for_verts = []
-        # for i in range(len(new_mesh.verts)):
-        #     tri_for_verts.append([])
-
-        # for i in range(len(new_mesh.faces)):
-        #     for j in range(len(new_mesh.faces[i])):
-        #         # append that normal to each vertex in the face
-        #         tri_for_verts[new_mesh.faces[i][j]].append(new_mesh.normals[i])
-
-        # new_mesh.vert_normals = [None] * len(new_mesh.verts)
-        # for i in range(len(tri_for_verts)):
-        #     sum = np.array([0, 0, 0], dtype=float)
-        #     for j in range(len(tri_for_verts[i])):
-        #         sum = Vector3.add(sum, tri_for_verts[i][j])
-        #     new_mesh.vert_normals[i] = Vector3.normalize(sum)
         
         new_mesh.calculate_vert_normals()
         new_mesh.calculate_bounding_box()
