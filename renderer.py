@@ -311,12 +311,15 @@ class Renderer:
 
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
                 color = quantize_color(target)
-                if np.linalg.norm(d) > 0.1:
-                    return skew_color(color, 1)
-                else:
-                    target_no_d = Vector3.clamp(Vector3.mul(Vector3.add(a, s), 255), None, 255)
-                    color_no_d = quantize_color(target_no_d)
-                    return skew_color(color if pattern.checker(x, y) else color_no_d, 1)
+                target_no_s = Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
+                color_no_s = quantize_color(target_no_s)
+                if not np.allclose(color, color_no_s) and np.linalg.norm(s) < 0.2:
+                    return skew_color(color if pattern.dots(x, y, 3) else color_no_s, 1)
+                target_no_d = Vector3.clamp(Vector3.mul(Vector3.add(a, s), 255), None, 255)
+                color_no_d = quantize_color(target_no_d)
+                if not np.allclose(color, color_no_d) and np.linalg.norm(d) < 0.08:
+                    return skew_color(color if pattern.dots(x, y, 3) else color_no_d, 1)
+                return skew_color(color, 1)
             elif isinstance(light, PointLight): #* No shadow maps for point light
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
                 v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))

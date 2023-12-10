@@ -12,10 +12,10 @@ if __name__ == '__main__':
     screen = Screen(500,500)
 
     camera = PerspectiveCamera(1.0, -1.0, -1.0, 1.0, -1.5, -20)
-    camera.transform.set_position(0, 6, 0.5)
+    camera.transform.set_position(0, 5.8, 0.45)
 
     mesh_1 = Mesh.from_stl("suzanne.stl", np.array([1.0, 0.0, 1.0]),\
-        np.array([1.0, 1.0, 1.0]),0.05,1.0,0.2,100)
+        np.array([1.0, 1.0, 1.0]),0.05,1.0,0.4,100)
     mesh_1.transform.set_rotation(15, 0, 35)
     mesh_1.transform.set_position(1,-1,0)
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     mesh_2.transform.set_rotation(0, 10, 0)
 
     mesh_3 = Mesh.from_stl("unit_sphere.stl", np.array([1.0, 0.6, 0.0]),\
-        np.array([1.0, 1.0, 1.0]),0.05,0.8,0.2,100)
+        np.array([1.0, 1.0, 1.0]),0.05,0.8,0.4,100)
     mesh_3.transform.set_position(-0.4,0,0.75)
 
     mesh_4 = Mesh.from_stl("plane.stl", np.array([0.9, 0.9, 0.9]), \
