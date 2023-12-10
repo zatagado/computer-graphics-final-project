@@ -27,19 +27,16 @@ class Screen:
 
     def show(self):
         pygame.init()
-
         screen = pygame.display.set_mode((self.width, self.height))
+        surface = pygame.Surface((self.width, self.height))
+        pygame.pixelcopy.array_to_surface(surface, self.buffer)
+        screen.blit(surface, (0, 0))
+        pygame.display.flip()
 
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            
-            surface = pygame.Surface((self.width, self.height))
-            pygame.pixelcopy.array_to_surface(surface, self.buffer)
-            screen.blit(surface, (0, 0))
-            pygame.display.flip()
+        while True:
+            event = pygame.event.wait()
+            if event.type == pygame.QUIT:
+                break
 
         pygame.quit()
 
