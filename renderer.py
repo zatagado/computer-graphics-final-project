@@ -296,8 +296,10 @@ class Renderer:
                 #* final_color: rim_lit + non_rim_lit
 
                 phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit * unoccluded), np.pi), None, 1)
+                phi_d_no_shadow = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit), np.pi), None, 1)
 
                 d = Vector3.mul(l_color, phi_d)
+                d_no_shadow = Vector3.mul(l_color, phi_d_no_shadow)
 
                 i_s = mesh.specular_color
                 ks = mesh.ks
@@ -311,8 +313,12 @@ class Renderer:
 
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
                 color = quantize_color(target)
+                target_no_shadow = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d_no_shadow), s), 255), None, 255)
+                color_no_shadow = quantize_color(target_no_shadow)
                 target_no_s = Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
                 color_no_s = quantize_color(target_no_s)
+                if not np.allclose(color, color_no_shadow):
+                    return skew_color(color if pattern.lines(x, y, 4) else color_no_shadow, 1)
                 if not np.allclose(color, color_no_s) and np.linalg.norm(s) < 0.2:
                     return skew_color(color if pattern.dots(x, y, 3) else color_no_s, 1)
                 target_no_d = Vector3.clamp(Vector3.mul(Vector3.add(a, s), 255), None, 255)

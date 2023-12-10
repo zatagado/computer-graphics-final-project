@@ -13,3 +13,6 @@ def _dots(x, y, size):
 
 def dots(x, y, size):
     return _dots(x, y, size) or _dots(x + size, y + size * math.sqrt(3), size)
+
+def lines(x, y, size):
+    return (x - 2 * y) % (size * 2) >= size
