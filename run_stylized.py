@@ -25,7 +25,7 @@ if __name__ == '__main__':
     mesh_2.transform.set_rotation(0, 10, 0)
 
     mesh_3 = Mesh.from_stl("unit_sphere.stl", np.array([1.0, 0.6, 0.0]),\
-        np.array([1.0, 1.0, 1.0]),0.05,0.8,0.4,100)
+        np.array([1.0, 1.0, 1.0]),0.05,0.8,0.4,75)
     mesh_3.transform.set_position(-0.4,0,0.75)
 
     mesh_4 = Mesh.from_stl("plane.stl", np.array([0.9, 0.9, 0.9]), \

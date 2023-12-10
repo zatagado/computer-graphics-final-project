@@ -287,13 +287,7 @@ class Renderer:
                 
                 lit = max(Vector3.dot(l, n), 0) # regular fragment lighting
                 unoccluded = shadow_map.check_occlusion(p_sm) if shadow_map is not None else 1 # check if area is occluded from the light
-                rim = (1 - max(Vector3.dot(v, n), 0)) # white around the rim of the object
-
-                #* To add the rim light, separate the non rim and rim lit sections then add them
-                #* since they rim and non_rim are mutually exclusive it is safe to add
-                #* rim_lit: rim * lit * unoccluded * rim_color
-                #* non_rim_lit: (1 - rim) * lit * unoccluded * non_rim_color
-                #* final_color: rim_lit + non_rim_lit
+                rim = 0.15 * (1 - max(Vector3.dot(v, n), 0)) ** 3 # white around the rim of the object
 
                 phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit * unoccluded), np.pi), None, 1)
                 phi_d_no_shadow = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit), np.pi), None, 1)
@@ -305,24 +299,31 @@ class Renderer:
                 ks = mesh.ks
                 ke = mesh.ke
 
-                phi_s = ks * (max(0, Vector3.dot(n, h)) ** ke) * unoccluded
+                phi_s = (1 - rim) * ks * (max(0, Vector3.dot(n, h)) ** ke) * unoccluded
 
                 s = Vector3.mul(i_s, phi_s)
+                r = Vector3.mul(i_s, rim * lit * unoccluded)
+                r_no_shadow = Vector3.mul(i_s, rim * lit)
 
                 a = Vector3.mul(Vector3.mul(ambient_light, mesh.ka), o)
+                ar = Vector3.add(a, r)
+                ar_no_shadow = Vector3.add(a, r_no_shadow)
 
-                target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
+                target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(ar, d), s), 255), None, 255)
                 color = quantize_color(target)
-                target_no_shadow = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d_no_shadow), s), 255), None, 255)
+                target_no_shadow = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(ar_no_shadow, d_no_shadow), s), 255), None, 255)
                 color_no_shadow = quantize_color(target_no_shadow)
-                target_no_s = Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
+                target_no_s = Vector3.clamp(Vector3.mul(Vector3.add(ar, d), 255), None, 255)
                 color_no_s = quantize_color(target_no_s)
+
                 if not np.allclose(color, color_no_shadow):
                     return skew_color(color if pattern.lines(x, y, 4) else color_no_shadow, 1)
                 if not np.allclose(color, color_no_s) and np.linalg.norm(s) < 0.2:
                     return skew_color(color if pattern.dots(x, y, 3) else color_no_s, 1)
-                target_no_d = Vector3.clamp(Vector3.mul(Vector3.add(a, s), 255), None, 255)
+
+                target_no_d = Vector3.clamp(Vector3.mul(Vector3.add(ar, s), 255), None, 255)
                 color_no_d = quantize_color(target_no_d)
+
                 if not np.allclose(color, color_no_d) and np.linalg.norm(d) < 0.08:
                     return skew_color(color if pattern.dots(x, y, 3) else color_no_d, 1)
                 return skew_color(color, 1)
