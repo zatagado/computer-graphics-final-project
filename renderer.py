@@ -5,6 +5,7 @@ from light import PointLight, DirectionalLight
 from camera import PerspectiveCamera
 import numpy as np
 import math
+import pattern
 
 # Quantize a color to a more limited palette
 def quantize_color(target: np.ndarray):
@@ -257,7 +258,7 @@ class Renderer:
             unoccluded = shadow_map.check_occlusion(p)
             return (255 * unoccluded, 255 * unoccluded, 255 * unoccluded)
 
-        def shade_stylized(camera, light, ambient_light, shadow_map, mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma):
+        def shade_stylized(camera, light, ambient_light, shadow_map, mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma, x, y):
             o = mesh.diffuse_color
             kd = mesh.kd
             l_color = light.color
@@ -309,7 +310,13 @@ class Renderer:
                 a = Vector3.mul(Vector3.mul(ambient_light, mesh.ka), o)
 
                 target = Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
-                return skew_color(quantize_color(target), 1)
+                color = quantize_color(target)
+                if np.linalg.norm(d) > 0.1:
+                    return skew_color(color, 1)
+                else:
+                    target_no_d = Vector3.clamp(Vector3.mul(Vector3.add(a, s), 255), None, 255)
+                    color_no_d = quantize_color(target_no_d)
+                    return skew_color(color if pattern.checker(x, y) else color_no_d, 1)
             elif isinstance(light, PointLight): #* No shadow maps for point light
                 l = Vector3.normalize(Vector3.sub(light.transform.get_position(), p))
                 v = Vector3.normalize(Vector3.sub(camera.transform.get_position(), p))
@@ -460,7 +467,7 @@ class Renderer:
                                 image_buffer[x, y] = shade_shadow_map(self.camera, self.shadow_map, ndc_tri, world_tri, alpha, beta, gamma)
                             elif rpass.shading == "stylized":
                                 image_buffer[x, y] = shade_stylized(self.camera, self.light, ambient_light, self.shadow_map, \
-                                    mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma)
+                                    mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma, x, y)
                             elif rpass.shading == "outline":
                                 image_buffer[x, y] = shade_outline(mesh)
 

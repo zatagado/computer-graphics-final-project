@@ -40,7 +40,7 @@ if __name__ == '__main__':
     #* Grouping for rendering from camera pov
     renderer = Renderer(screen, camera, light, shadow_map)
     stylized_pass = StylizedPass([mesh_1, mesh_2, mesh_3, mesh_4])
-    outline_pass = OutlinePass([mesh_1, mesh_2, mesh_3, mesh_4], [[1, 1, 1], [0, 0, 0], [1, 1, 0], [0, 0, 0]], [0.02, 0.05, 0.07, 0.1])
+    outline_pass = OutlinePass([mesh_1, mesh_2, mesh_3, mesh_4], [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], [0.05, 0.05, 0.05, 0.05])
     renderer.render([stylized_pass, outline_pass], [80, 80, 80], [8, 8, 8]) 
 
     screen.show()
