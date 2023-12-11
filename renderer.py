@@ -497,13 +497,6 @@ class Pass:
         self.meshes = meshes
         self.shading = shading
 
-# TODO whatever needs to be in this
-# TODO use OutlinePass as reference
-class StylizedPass(Pass):
-    # TODO can pass data from StylizedPass to shade_stylized using rpass.something_important inside render_pass function 
-    def __init__(self, meshes):
-        super().__init__(meshes, "stylized")
-
 class OutlinePass(Pass):
     def __init__(self, meshes, mesh_outline_colors, mesh_outline_sizes):
         def invert_hull(meshes, mesh_outline_sizes):

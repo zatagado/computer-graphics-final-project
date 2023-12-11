@@ -51,7 +51,7 @@ class PerspectiveCamera:
         # p_copy[1], p_copy[2] = p_copy[2], p_copy[1]
         p = np.array([p[0], p[2], p[1]], dtype=float)
         # multiply by inverse orthographic transform
-        p_persp = np.matmul(self.inverse_ortho_transform, Vector3.to_vertical(Vector3.to_Vector4(p_copy)))
+        p_persp = np.matmul(self.inverse_ortho_transform, Vector3.to_vertical(Vector3.to_Vector4(p)))
         
         y = (self.far * self.near) / ((self.near + self.far) - p_persp[1])
         p_persp = Vector4.mul(p_persp, y)
