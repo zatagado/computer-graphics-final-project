@@ -287,7 +287,8 @@ class Renderer:
                 
                 lit = max(Vector3.dot(l, n), 0) # regular fragment lighting
                 unoccluded = shadow_map.check_occlusion(p_sm) if shadow_map is not None else 1 # check if area is occluded from the light
-                rim = 0.15 * (1 - max(Vector3.dot(v, n), 0)) ** 3 # white around the rim of the object
+                rim = 1 - max(Vector3.dot(v, n), 0) # white around the rim of the object
+                rim = 0.5 if rim > 0.8 else 0
 
                 phi_d = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit * unoccluded), np.pi), None, 1)
                 phi_d_no_shadow = Vector3.clamp(Vector3.div(Vector3.mul(o, kd * lit), np.pi), None, 1)
