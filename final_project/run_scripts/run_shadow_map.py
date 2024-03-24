@@ -1,4 +1,10 @@
 import numpy as np
+import sys
+import os
+
+assets = os.path.dirname(os.path.abspath(__file__)) + '/../assets/'
+src = os.path.dirname(os.path.abspath(__file__)) + '/../src/'
+sys.path.append(src) 
 
 from screen import Screen
 from camera import PerspectiveCamera,OrthoCamera
@@ -16,11 +22,11 @@ if __name__ == '__main__':
     camera.transform.set_position(0, 10, 1)
     camera.transform.set_rotation_towards([0, -1, -0.3])
 
-    mesh_1 = Mesh.from_stl("unit_sphere.stl", np.array([1.0, 0.6, 0.0]),\
+    mesh_1 = Mesh.from_stl(assets + "unit_sphere.stl", np.array([1.0, 0.6, 0.0]),\
         np.array([1.0, 1.0, 1.0]),0.05,0.8,0.2,100)
     mesh_1.transform.set_position(0.5, 0, 1)
 
-    mesh_2 = Mesh.from_stl("plane.stl", np.array([0.9, 0.9, 0.9]), \
+    mesh_2 = Mesh.from_stl(assets + "plane.stl", np.array([0.9, 0.9, 0.9]), \
         np.array([1.0, 1.0, 1.0]), 0.05, 1.0, 0.2, 100)
     mesh_2.transform.set_position(0, 0, -2.5)
 

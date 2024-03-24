@@ -1,4 +1,10 @@
 import numpy as np
+import sys
+import os
+
+assets = os.path.dirname(os.path.abspath(__file__)) + '/../assets/'
+src = os.path.dirname(os.path.abspath(__file__)) + '/../src/'
+sys.path.append(src) 
 
 from screen import Screen
 from camera import PerspectiveCamera,OrthoCamera
@@ -14,21 +20,21 @@ if __name__ == '__main__':
     camera = PerspectiveCamera(1.0, -1.0, -1.0, 1.0, -1.5, -20)
     camera.transform.set_position(0, 5.8, 0.45)
 
-    mesh_1 = Mesh.from_stl("suzanne.stl", np.array([1.0, 0.0, 1.0]),\
+    mesh_1 = Mesh.from_stl(assets + "suzanne.stl", np.array([1.0, 0.0, 1.0]),\
         np.array([1.0, 1.0, 1.0]),0.05,1.0,0.2,100)
     mesh_1.transform.set_rotation(15, 0, 35)
     mesh_1.transform.set_position(1,-1,0)
 
-    mesh_2 = Mesh.from_stl("unit_cube.stl", np.array([0.6, 0.0, 1.0]),\
+    mesh_2 = Mesh.from_stl(assets + "unit_cube.stl", np.array([0.6, 0.0, 1.0]),\
         np.array([1.0, 1.0, 1.0]),0.05,1.0,0.2,100)
     mesh_2.transform.set_position(-0.25, 1.5,-0.4)
     mesh_2.transform.set_rotation(0, 10, 0)
 
-    mesh_3 = Mesh.from_stl("unit_sphere.stl", np.array([1.0, 0.6, 0.0]),\
+    mesh_3 = Mesh.from_stl(assets + "unit_sphere.stl", np.array([1.0, 0.6, 0.0]),\
         np.array([1.0, 1.0, 1.0]),0.05,0.8,0.2,100)
     mesh_3.transform.set_position(-0.4,0,0.75)
 
-    mesh_4 = Mesh.from_stl("plane.stl", np.array([0.9, 0.9, 0.9]), \
+    mesh_4 = Mesh.from_stl(assets + "plane.stl", np.array([0.9, 0.9, 0.9]), \
         np.array([1.0, 1.0, 1.0]), 0.05, 1.0, 0.2, 100)
     mesh_4.transform.set_position(0, 0, -2.5)
 
