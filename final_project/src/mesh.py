@@ -6,9 +6,38 @@ from transform import Transform
 from PIL import Image
 
 class Mesh:
+    """Mesh class defines a 3D mesh, which can be created from manually adding 
+    vertices and triangles, or loaded from a .stl file.
+
+    Attributes
+    ----------
+    verts : list()
+        List of 3D vertices <x,y,z> for the mesh.
+
+    faces : list()
+        List of triangle faces for the mesh, with each face defined as a list 
+        of 3 vertex indicies into verts in counter clockwise ordering.
+
+    normals : list()
+        List of 3D face normals for the mesh. The elements of this list 
+        correspond to the same triangles defined in faces.
+
+    vertex_normals : list()
+        The calculated average of all faces connected to each vertex.
+
+    uvs : list()
+        Normalized texture coordinates for each vertex.
+
+    texture : Image
+        The texture image to be sampled using u,v coordinates.
+    """
+
     def __init__(self, diffuse_color=None, specular_color=None, 
         ka=None, kd=None, ks=None, ke=None):
-        
+        """The constructor takes diffuse and specular color as an 3 element np 
+        array with all three values between 0.0 and 1.0, as well as material 
+        properties ka, kd, ks, and ke.
+        """
         self.verts = []
         self.faces = []
         self.normals = []
@@ -26,6 +55,8 @@ class Mesh:
         self.ke = ke
 
     def calculate_bounding_box(self):
+        """Calculates the bounding box of the mesh.  
+        """
         self.bounding_box_min = np.array([self.verts[0][0], \
             self.verts[0][1], self.verts[0][2]], dtype=float)
         self.bounding_box_max = np.array([self.verts[0][0], \
@@ -48,6 +79,8 @@ class Mesh:
                 self.bounding_box_min[2] = vertex[2]
 
     def calculate_vert_normals(self):
+        """Calculates the normal direction for each vertex in the mesh.
+        """
         tri_for_verts = []
         for i in range(len(self.verts)):
             tri_for_verts.append([])
@@ -66,7 +99,14 @@ class Mesh:
 
     @staticmethod
     def from_stl(stl_path, diffuse_color, specular_color, ka, kd, ks, ke):
+        """This static method takes an stl file as input, initializes an empty 
+        Mesh object using the input material properties diffuse_color, 
+        specular_color, ka, kd, ks, ke and populates the verts, faces, and 
+        normals member variables. The method returns the populated Mesh object.
+        """
         def index_of(arr: list, elem):
+            """Finds the index of an element in a list.
+            """
             for i in range(len(arr)):
                 if Vector3.equals(arr[i], elem):
                     return i
@@ -105,12 +145,20 @@ class Mesh:
         return new_mesh
 
     def load_texture(self, img_path):
+        """Load the image file img_path with PIL.Image.open() to populate the 
+        texture variable.
+        """
         self.texture = Image.open(img_path, "r")
 
     def sphere_uvs(self):
+        """Populates uvs coordinates using cart2sph texture mapping.
+        """
         #z is 'up', theta is azimith angle, phi is elevation
         #used for texture coordinates of sphere, so it only returns theta and phi angle
         def cart2sph(v):
+            """A texture mapping function using cartesian to spherical 
+            conversion to return u,v coordinates.
+            """
             x = v[0]
             y = v[1]
             z = v[2]
@@ -142,12 +190,11 @@ class Mesh:
 
     @staticmethod
     def textured_quad():
+        """A static function that returns a populated Mesh object that 
+        represents a two-triangle quad for demonstrating perspective correct 
+        texture coordinates.
+        """
         mesh = Mesh() 
-        # mesh.verts = [np.array([0.4, 0.5, -0.5]),
-        #     np.array([-0.4, 0.5, -0.4]),
-        #     np.array([0.4, -0.5, 0.4]),
-        #     np.array([-0.4, -0.9, 0.4])
-        #     ]
 
         mesh.verts = [np.array([0.4, 0.5, -0.5]),
             np.array([-0.4, 0.5, -0.5]),
@@ -157,7 +204,6 @@ class Mesh:
 
         mesh.faces = [[0, 1, 2], [3, 2, 1]]
 
-        #todo: once happy, print the normals and set manually to avoid dependency on vector3 class
         normals = []
         for face in mesh.faces:
             a = Vector3.sub(mesh.verts[face[1]], mesh.verts[face[0]])
@@ -174,6 +220,8 @@ class Mesh:
         return mesh
     
     def deep_copy(self):
+        """Creates a deep copy of the mesh object.
+        """
         new_mesh = Mesh(self.diffuse_color, self.specular_color, self.ka, self.kd, self.ks, self.ke)
         new_mesh.verts = [Vector3.copy(self.verts[a]) for a in range(len(self.verts))]
         new_mesh.faces = [Vector3.copy(self.faces[a]) for a in range(len(self.faces))]

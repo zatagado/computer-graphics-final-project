@@ -20,12 +20,22 @@ def skew_color(target: np.ndarray, amount):
 
 class Renderer:
     def __init__(self, screen: Screen, camera, light, shadow_map=None):
+        """The class constructor takes a screen object (of type Screen), and 
+        camera object (either of type OrthoCamera or PerspectiveCamera), and 
+        a mesh object (of type Mesh) and stores them.
+        """
         self.screen = screen
         self.camera = camera
         self.light = light
         self.shadow_map = shadow_map
 
     def render(self, passes, bg_color, ambient_light):
+        """Executes the basic render loop to construct an image buffer. It 
+        will then draw that image buffer to the screen object using the 
+        screen.draw method, but it will not run the pygame loop (the calling 
+        function will call screen.show). Takes list of passes that define the 
+        shading type.
+        """
         def get_pixel_bounds(screen_coords_verts, screen_width, screen_height):
             bounding_rect_min = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             bounding_rect_max = [screen_coords_verts[0][0], screen_coords_verts[0][1]]

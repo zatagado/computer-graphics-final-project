@@ -78,7 +78,7 @@ class ShadowMap:
                     # cull triangle if normal is facing away from camera
                     cross = Vector3.cross(Vector3.normalize(Vector3.sub(ndc_tri[1], ndc_tri[0])), \
                         Vector3.normalize(Vector3.sub(ndc_tri[2], ndc_tri[0])))
-                    # TODO for presentation compare regular vs flipped normals in presentation
+                    
                     # if cross[2] < 0: #! Regular normals
                     #     continue
                     if cross[2] >= 0: #! Flipped normals
@@ -101,7 +101,6 @@ class ShadowMap:
                     for x in range(x_min, x_max):
                         for y in range(y_min, y_max):
                             # barycentric coordinate checking
-                            # ? What happens when there is a negative divisor
                             gammaDivisor = (((y_a - y_b) * x_c) + ((x_b - x_a) * y_c) + (x_a * y_b) - (x_b * y_a))
                             if gammaDivisor == 0:
                                 gammaDivisor = 0.0000001
@@ -138,7 +137,7 @@ class ShadowMap:
             self.orthoCamera = orthoCamera
             # Rotate the camera the same direction the light is facing
             self.orthoCamera.transform.set_rotation_towards(light.transform.apply_to_normal(Vector3.negate(Vector3.forward())))
-            # self.orthoCamera.transform.set_position(light.transform.get_position()) # ! The position probably doesn't matter
+
             self.resolution = resolution
             self.bias = bias
             # Fill the depth buffer with depths from the viewpoint of the light source
