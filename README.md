@@ -1,6 +1,4 @@
 # Computer Graphics Final Project: Non-Photorealistic Rendering and Shadow Mapping
-Currently working on the README and comments/documentation for this project, but feel free to check it out.
-
 This is the repository for our final project in CS4204: Computer Graphics. Over the semester we had been working on building our own custom render pipeline mostly from the ground up using Python. We used Pygame to serve as our window we could output our frame buffer to, but otherwise all rendering is done with the code we wrote over the course of this class. 
 
 The focus of this class was not to create an optimized render pipeline, so while there are a few techniques used to speed up rendering, our pipeline is much slower than modern render pipelines. Modern render pipelines use the parallel processing of the GPU, efficient data structures, and more efficient programming languages than Python to be capable of rendering dozens, if not hundreds of frames in a second.
