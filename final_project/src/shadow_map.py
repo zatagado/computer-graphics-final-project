@@ -6,14 +6,31 @@ from render_math import Vector3
 from mesh import Mesh
 
 class ShadowMap:
+    """This class is used to generate casted shadows upon the surfaces of 
+    meshes. It does this by using an orthographic camera facing in the 
+    direction of the light, then generating a depth map. The main camera 
+    compares the shadow map transformed depth of pixels it renders to the 
+    shadow depth map. ShadowMaps are currently only implemented to use 
+    directional lights and will not work with point lights.
+    """
+
     def device_to_screen(self, p):
+        """Converts a point from device coordinate space to screen coordinate 
+        space.
+        """
         p_screen = Vector3.to_Vector2(p)
         p_screen[0] = (p_screen[0] + 1) * (self.resolution[0] / 2)
         p_screen[1] = (p_screen[1] + 1) * (self.resolution[1] / 2)
         return p_screen
     
     def __init__(self, meshes, light: DirectionalLight, orthoCamera: OrthoCamera, resolution, bias): 
+        """Initializes the ShadowMap object and generates the shadow map. 
+        """
         def get_pixel_bounds(screen_coords_verts, width, height):
+            """Gets the x and y pixel bounds of the mesh from its bounding box.
+            Used for optimization so we know we do not have to modify pixels 
+            outside of those bounds for the current mesh.
+            """
             bounding_rect_min = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             bounding_rect_max = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             for vert in screen_coords_verts:
@@ -61,6 +78,10 @@ class ShadowMap:
             return [bounding_rect_min, bounding_rect_max]
 
         def fill_depth_buffer(meshes, orthoCamera, resolution):
+            """Actually generates the depth buffer for the shadow map from the 
+            perspective of the orthographic camera. Takes a resolution for the 
+            depth buffer./
+            """
             depth_buffer = np.full(resolution, -math.inf, dtype=float)
 
             for i in range(len(meshes)):
@@ -119,7 +140,7 @@ class ShadowMap:
 
                             # ignore pixel outside near far bounds
                             depth = Vector3.add(Vector3.mul(ndc_tri[0], alpha), Vector3.add(Vector3.mul(ndc_tri[1], beta), Vector3.mul(ndc_tri[2], gamma)))[2]
-                            if depth > 1 or depth < -1: #? should the first be 1 instead of 0????
+                            if depth > 1 or depth < -1:
                                 continue
 
                             # render the pixel depending on the depth of the pixel
@@ -144,6 +165,10 @@ class ShadowMap:
             self.depth_buffer = fill_depth_buffer(meshes, orthoCamera, resolution)
 
     def check_occlusion(self, p): #* point must be within world space
+        """Checks the shadow map to see if the given world space point is
+        occluded by another surface. Returns 0 if point is occluded, 1 
+        otherwise. 
+        """
         ndc_vert = self.orthoCamera.project_point(p) 
         
         if ndc_vert[0] < -1 or 1 < ndc_vert[0] or ndc_vert[1] < -1 or 1 < ndc_vert[1]:

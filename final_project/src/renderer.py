@@ -37,6 +37,10 @@ class Renderer:
         shading type.
         """
         def get_pixel_bounds(screen_coords_verts, screen_width, screen_height):
+            """Gets the x and y pixel bounds of the mesh from its bounding box.
+            Used for optimization so we know we do not have to modify pixels 
+            outside of those bounds for the current mesh.
+            """
             bounding_rect_min = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             bounding_rect_max = [screen_coords_verts[0][0], screen_coords_verts[0][1]]
             for vert in screen_coords_verts:
