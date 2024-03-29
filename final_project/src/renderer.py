@@ -7,14 +7,16 @@ import numpy as np
 import math
 import pattern
 
-# Quantize a color to a more limited palette
 def quantize_color(target: np.ndarray):
+    """Quantize a color to a more limited palette
+    """
     bucket_count = 5
     return 255 / (bucket_count - 1) * (target * bucket_count // 256)
 
-# Not sure what to call this, but it distorts colors in an interesting way.
-# The brighter a color, the more it will be distorted.
 def skew_color(target: np.ndarray, amount):
+    """Not sure what to call this, but it distorts colors in an interesting 
+    way. The brighter a color, the more it will be distorted.
+    """
     s = (target[0] + target[1] + target[2]) / (255 * 3) * amount
     return np.array([target[2] * s + target[0] * (1 - s), target[0] * s + target[1] * (1 - s), target[1] * s + target[2] * (1 - s)])
 
@@ -88,6 +90,10 @@ class Renderer:
             return [bounding_rect_min, bounding_rect_max]
 
         def perspective_correction_w(camera, p):
+            """Applies perspective correction for perspective correct textures 
+            and shadows. Without this correction, textures on the mesh will not 
+            have a vanishing point due to perspective.
+            """
             p_copy = np.array(p, dtype=float)
             p_copy[1], p_copy[2] = p_copy[2], p_copy[1]
             p_persp = np.matmul(camera.inverse_ortho_transform, Vector4.to_vertical(Vector3.to_Vector4(p_copy)))
@@ -95,6 +101,10 @@ class Renderer:
             return w
 
         def shade_flat(light, ambient_light, mesh, world_tri, normal, alpha, beta, gamma):
+            """Applies flat shading to the mesh using its color properties. 
+            Allows for shadows on mesh but no support for shadow maps. No 
+            support for textures.
+            """
             p = Vector3.add(Vector3.mul(world_tri[0], alpha), \
                 Vector3.add(Vector3.mul(world_tri[1], beta), Vector3.mul(world_tri[2], gamma)))
             
@@ -122,13 +132,27 @@ class Renderer:
                 return Vector3.clamp(Vector3.mul(Vector3.add(a, d), 255), None, 255)
 
         def shade_barycentric(alpha, beta, gamma):
+            """Applies barycentric shading to the mesh. The first vertex is 
+            red, the second green, and the third blue. All pixel colors on the 
+            triangle are interpolated between the colors of its vertices 
+            according to the barycentric coordinate system. 
+            """
             return (255 * alpha, 255 * beta, 255 * gamma)
         
         def shade_depth(depth):
+            """Applies depth shading to the mesh. Pixel colors are grayscale 
+            with pixels close the near plane being white and pixels close to 
+            the far plane being black with pixels in between being 
+            interpolated.
+            """
             depth_norm = (depth + 1) / 2
             return (255 * depth_norm, 255 * depth_norm, 255 * depth_norm)
         
         def shade_phong_blinn(camera, light, ambient_light, shadow_map, mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma):
+            """Applies the Blinn-Phong shading model to the mesh using its 
+            color properties. No support for textures. Has Support for shadow 
+            maps.
+            """
             o = mesh.diffuse_color
             kd = mesh.kd
             l_color = light.color
@@ -199,6 +223,10 @@ class Renderer:
                 return Vector3.clamp(Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255), None, 255)
 
         def shade_gouraud_vertex(vertex_colors, face, ambient_light, light, camera, mesh, world_tri, world_tri_vert_normals):
+            """Calculates Gouraud shading per vertex on the mesh using its 
+            color properties. Allows for shadows on mesh but no support for 
+            shadow maps. No support for textures.
+            """
             for i in range(3):
                 if vertex_colors[face[i]] is None:
                     p = world_tri[i]
@@ -235,10 +263,16 @@ class Renderer:
                     vertex_colors[face[i]] = Vector3.mul(Vector3.add(Vector3.add(a, d), s), 255)
 
         def shade_gouraud_pixel(vert_color_tri, alpha, beta, gamma):
+            """Applies Gouraud shading per pixel to the mesh using its color 
+            properties.
+            """
             return Vector3.add(Vector3.mul(vert_color_tri[0], alpha), \
                 Vector3.add(Vector3.mul(vert_color_tri[1], beta), Vector3.mul(vert_color_tri[2], gamma)))
 
         def shade_texture(texture_pixels, texture_width, texture_height, uv_tri, alpha, beta, gamma):
+            """Applies shading using a texture without pespective correction 
+            to the mesh. No support for shadows or shadow maps.
+            """
             uv = Vector2.add(Vector2.mul(uv_tri[0], alpha), \
                 Vector2.add(Vector2.mul(uv_tri[1], beta), Vector2.mul(uv_tri[2], gamma)))
 
@@ -249,7 +283,9 @@ class Renderer:
 
         def shade_texture_correct(camera, texture_pixels, texture_width, texture_height, uv_tri, ndc_tri, \
             alpha, beta, gamma):
-
+            """Applies shading using a texture with pespective correction to 
+            the mesh. No support for shadows or shadow maps.
+            """
             uv = Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[0]), perspective_correction_w(camera, ndc_tri[0])), alpha), \
                 Vector3.add(Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[1]), perspective_correction_w(camera, ndc_tri[1])), beta), \
                 Vector3.mul(Vector3.div(Vector2.to_Vector3(uv_tri[2]), perspective_correction_w(camera, ndc_tri[2])), gamma)))
@@ -260,6 +296,9 @@ class Renderer:
             return (texture_pixels[x, y][0], texture_pixels[x, y][1], texture_pixels[x, y][2])
 
         def shade_shadow_map(camera, shadow_map, ndc_tri, world_tri, alpha, beta, gamma):
+            """Applies a visual representation of shadow map occlusion to the 
+            mesh. Black areas a occluded. White areas are unoccluded.
+            """
             p = None
             if isinstance(camera, PerspectiveCamera):
                 p = Vector4.add(Vector4.mul(Vector4.div(Vector3.to_Vector4(world_tri[0]), perspective_correction_w(self.camera, ndc_tri[0])), alpha), \
@@ -273,6 +312,10 @@ class Renderer:
             return (255 * unoccluded, 255 * unoccluded, 255 * unoccluded)
 
         def shade_stylized(camera, light, ambient_light, shadow_map, mesh, ndc_tri, world_tri, world_tri_vert_normals, alpha, beta, gamma, x, y):
+            """Applies the stylized (non-photorealitic) shading to the mesh 
+            using its color properties. No support for textures. Has Support 
+            for shadow maps.
+            """
             o = mesh.diffuse_color
             kd = mesh.kd
             l_color = light.color
@@ -377,12 +420,17 @@ class Renderer:
                 return skew_color(quantize_color(target), 1)
 
         def shade_outline(mesh):
+            """Applies the outline color to the outline mesh.
+            """
             return Vector3.mul(mesh.diffuse_color, 255)
 
         image_buffer = np.full((self.screen.width, self.screen.height, 3), bg_color)
         depth_buffer = np.full((self.screen.width, self.screen.height), -math.inf, dtype=float)
 
         def render_pass(image_buffer, depth_buffer, rpass):
+            """Renders a specific pass that it is given. Can only render one 
+            pass at a time.
+            """
             for i in range(len(rpass.meshes)):
                 mesh: Mesh = rpass.meshes[i]
 
@@ -507,13 +555,32 @@ class Renderer:
 
 # Passes are created inside the run_stylized.py and other run scripts
 class Pass:
+    """Generic type pass object for shading styles that do not require a 
+    special implementation. Takes the meshes you would like to apply 
+    the specific shading style to.
+    """
+
     def __init__(self, meshes, shading):
+        """Constructor for Pass object.
+        """
         self.meshes = meshes
         self.shading = shading
 
 class OutlinePass(Pass):
+    """Pass object specifically for creating outlines for meshes. Takes the 
+    meshes you would like to add outlines to, along arrays of colors and sizes 
+    for those outlines. 
+    """
+
     def __init__(self, meshes, mesh_outline_colors, mesh_outline_sizes):
+        """Constructor for OutlinePass object.
+        """
+
         def invert_hull(meshes, mesh_outline_sizes):
+            """Copies the meshes it is given and applies the inverted hull
+            technique to them. This extrudes the mesh out by its vertex 
+            normals and flips the normals of the faces.
+            """
             inverted_hull_meshes = []
             for i in range(len(meshes)):
                 mesh = meshes[i]
